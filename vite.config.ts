@@ -1,0 +1,59 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { VitePWA } from 'vite-plugin-pwa';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'prompt',
+      // Dev-mode service worker, so PWA behaviour can be exercised without a build.
+      devOptions: { enabled: false },
+      includeAssets: ['favicon.svg'],
+      manifest: {
+        name: 'Recommend',
+        short_name: 'Recommend',
+        description:
+          'Buy from vendors near you, just by chatting — food, gadgets, anything.',
+        start_url: '/',
+        display: 'standalone',
+        orientation: 'portrait',
+        background_color: '#faf6e1',
+        theme_color: '#faf6e1',
+        icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          {
+            // Android crops non-maskable icons into a circle and clips the artwork.
+            src: '/icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // The chat is realtime and the catalogue changes; only the shell is precached.
+        navigateFallbackDenylist: [/^\/api/],
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/v1\/store/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'catalogue',
+              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
+            },
+          },
+        ],
+      },
+    }),
+  ],
+  server: {
+    port: 5173,
+    // The backend allowlists this origin explicitly — see recommend-be/src/config/cors.ts
+    strictPort: true,
+  },
+});

@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+/*
+ * Palette taken from the design reference: warm cream chrome, vivid orange for anything
+ * the buyer does, and a soft cream-to-sage gradient behind the thread.
+ */
+@theme {
+  --color-cream: #faf6e1;
+  --color-cream-deep: #f2ecd2;
+
+  /* The buyer's colour. Their bubbles, the send button, the active tab. */
+  --color-orange: #f04e23;
+  --color-orange-dark: #d13d16;
+
+  /* Kept from the existing brand — used for the wordmark and positive accents. */
+  --color-brand: #006837;
+  --color-brand-soft: #1b8f57;
+
+  --color-ink: #1f2937;
+  --color-muted: #98a2b3;
+  --color-hairline: #eceff3;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  color: var(--color-ink);
+  /* The thread scrolls; the page itself never does. */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * The gradient behind the conversation. Cream at the top so it meets the header, sage at
+ * the bottom so the composer sits on something calmer.
+ */
+.thread-bg {
+  background: linear-gradient(180deg, #f7f2dc 0%, #dfe9d4 45%, #b9d3c0 100%);
+}
+
+/*
+ * Bubble tails. A small square rotated behind the bubble reads as a tail without needing
+ * an SVG, and picks up the bubble's own colour so buyer and assistant share the code.
+ */
+.bubble-tail::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+.bubble-tail-left::before {
+  left: -6px;
+  transform: rotate(-135deg);
+}
+.bubble-tail-right::before {
+  right: -6px;
+  transform: rotate(45deg);
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+.typing-dot {
+  animation: typing-bounce 1.2s infinite;
+}
