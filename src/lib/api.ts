@@ -1,12 +1,10 @@
 import { config } from './config';
-import type { ApiEnvelope, StoreSummary, StorefrontResponse } from './contract';
-
-/**
- * REST client for everything that is not the conversation.
- *
- * Every backend response is wrapped by a global interceptor, so `data` is unwrapped
- * here and callers never see the envelope.
- */
+import type {
+  ApiEnvelope,
+  CheckoutStatus,
+  StoreSummary,
+  StorefrontResponse,
+} from './contract';
 
 export class ApiError extends Error {
   constructor(
@@ -56,7 +54,11 @@ export const api = {
    * the backend returns no contact details.
    */
   getOrderStatus: (reference: string) =>
-    request<Record<string, unknown>>(
-      `/checkout/${encodeURIComponent(reference)}`,
+    request<CheckoutStatus>(`/checkout/${encodeURIComponent(reference)}`),
+
+  verifyPayment: (reference: string) =>
+    request<CheckoutStatus>(
+      `/checkout/${encodeURIComponent(reference)}/verify`,
+      { method: 'POST' },
     ),
 };

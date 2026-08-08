@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useChat } from '../../hooks/useChat';
 import { useCart } from '../../hooks/useCart';
 import { chatClient } from '../../lib/socket';
@@ -39,14 +46,6 @@ export function ChatScreen() {
   /** Has the thread been dropped at the newest message yet? */
   const pinned = useRef(false);
 
-  /**
-   * A refresh — or a buyer coming back to the page — must land on the newest message.
-   *
-   * History arrives as one tall batch while the thread is still at `scrollTop` 0, so the
-   * "near the bottom" test below would read the whole thread as distance and refuse to
-   * follow. The first jump therefore has to be unconditional, and has to happen before
-   * paint, or the buyer watches the top of their own history flash past.
-   */
   useLayoutEffect(() => {
     const thread = threadRef.current;
     if (!thread || pinned.current || messages.length === 0) return;
@@ -83,6 +82,34 @@ export function ChatScreen() {
     restoreFrom.current = null;
   }, [messages]);
 
+  const { liveMessageIds, paidReferences } = useMemo(() => {
+    let summary: string | null = null;
+    let payment: string | null = null;
+    const paid = new Set<string>();
+
+    for (const message of messages) {
+      const payload = message.payload;
+
+      if (payload?.kind === 'order_summary') {
+        const settled = payload.data.status === 'PAID';
+        if (settled && payload.data.reference) paid.add(payload.data.reference);
+        summary = settled ? null : message.id;
+      }
+
+      if (payload?.kind === 'payment_link') {
+        summary = null;
+        payment = message.id;
+      }
+    }
+
+    return {
+      liveMessageIds: new Set(
+        [summary, payment].filter((id): id is string => !!id),
+      ),
+      paidReferences: paid,
+    };
+  }, [messages]);
+
   const onScroll = () => {
     const thread = threadRef.current;
     if (!thread || thread.scrollTop > 60 || loadingOlder || !hasMore) return;
@@ -99,6 +126,15 @@ export function ChatScreen() {
     chatClient.startCheckout({ items: cart.toCheckoutItems() });
     setCartOpen(false);
   };
+
+  const { clear: emptyCart, itemCount } = cart;
+  const clearPaidCart = useCallback(() => {
+    if (itemCount > 0) emptyCart();
+  }, [itemCount, emptyCart]);
+
+  useEffect(() => {
+    if (paidReferences.size > 0) clearPaidCart();
+  }, [paidReferences, clearPaidCart]);
 
   return (
     // `relative` so the sheets can cover the conversation without covering the page.
@@ -127,8 +163,11 @@ export function ChatScreen() {
               {showDivider && <DateDivider iso={message.createdAt} />}
               <MessageBubble
                 message={message}
+                live={liveMessageIds.has(message.id)}
+                paidReferences={paidReferences}
                 onChoose={send}
                 onOpenVendor={(slug, name) => setVendor({ slug, name })}
+                onPaid={clearPaidCart}
               />
             </div>
           );

@@ -2,6 +2,8 @@ import type { ChatMessage } from '../../lib/contract';
 import { QuickReplies } from './QuickReplies';
 import { ProductListCard } from './cards/ProductListCard';
 import { VendorListCard } from './cards/VendorListCard';
+import { OrderSummaryCard } from './cards/OrderSummaryCard';
+import { PaymentLinkCard } from './cards/PaymentLinkCard';
 
 /**
  * One turn in the thread.
@@ -9,19 +11,24 @@ import { VendorListCard } from './cards/VendorListCard';
  * Buyer turns are orange and right-aligned, the assistant's are white and left-aligned,
  * each with a small tail — straight from the design reference.
  *
- * `choices` payloads render as tappable chips here because they belong to the bubble that
- * asked the question. The richer kinds (`vendor_list`, `product_list`, `order_summary`,
- * `payment_link`) are F2/F3 and currently show a small marker so it is obvious they
- * arrived and are not yet drawn.
+ * Payloads render beneath the bubble that carried them, because they belong to what was
+ * said: the chips answer the question just asked, and the payment card belongs to the
+ * turn that quoted the price.
  */
 export function MessageBubble({
   message,
+  live,
+  paidReferences,
   onChoose,
   onOpenVendor,
+  onPaid,
 }: {
   message: ChatMessage;
+  live: boolean;
+  paidReferences: Set<string>;
   onChoose: (label: string) => void;
   onOpenVendor: (slug: string, name: string | null) => void;
+  onPaid: (reference: string) => void;
 }) {
   const isBuyer = message.author === 'BUYER';
   const payload = message.payload;
@@ -64,12 +71,22 @@ export function MessageBubble({
         <VendorListCard data={payload.data} onOpenVendor={onOpenVendor} />
       )}
 
-      {/* order_summary and payment_link land in F3. */}
-      {(payload?.kind === 'order_summary' ||
-        payload?.kind === 'payment_link') && (
-        <span className="mt-1 text-[10px] tracking-wide text-[var(--color-ink)]/40">
-          {payload.kind.replace('_', ' ')} · next sprint
-        </span>
+      {payload?.kind === 'order_summary' && (
+        <OrderSummaryCard
+          data={payload.data}
+          actionable={live}
+          onConfirm={() => onChoose('yes')}
+          onCancel={() => onChoose('no')}
+        />
+      )}
+
+      {payload?.kind === 'payment_link' && (
+        <PaymentLinkCard
+          data={payload.data}
+          active={live}
+          settled={paidReferences.has(payload.data.reference)}
+          onPaid={onPaid}
+        />
       )}
     </div>
   );

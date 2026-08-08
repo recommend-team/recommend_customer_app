@@ -1,11 +1,5 @@
 /**
  * The backend contract, mirrored from `recommend-be` §6 (FROZEN v1).
- *
- * Framework-agnostic on purpose — this file and its siblings in `lib/` move to a React
- * Native app untouched. Nothing here may import from `components/`.
- *
- * Additive changes on the server are safe. A rename or a type change is a v2 and must be
- * agreed, not discovered here.
  */
 
 // ─── Socket events ────────────────────────────────────────────────────────────
@@ -138,10 +132,34 @@ export interface OrderSummaryData {
     unitPrice: number;
     lineTotal: number;
   }[];
-  /** Present after payment, grouped by vendor. */
+  /** Present after payment, grouped by vendor — one entry per order actually placed. */
   vendors?: {
     orderId: string;
-    items: { name: string; quantity: number }[];
+    vendorName?: string | null;
+    /** This vendor's goods subtotal, delivery excluded. */
+    subtotal?: number;
+    items: {
+      name: string;
+      quantity: number;
+      /** Snapshots taken at purchase, not today's catalogue price. */
+      unitPrice?: number;
+      lineTotal?: number;
+    }[];
+  }[];
+}
+
+export interface CheckoutStatus {
+  reference: string;
+  status: 'PENDING_PAYMENT' | 'PAID' | 'CANCELLED' | 'REFUNDED' | string;
+  paidAt: string | null;
+  goodsTotal: number;
+  deliveryFee: number;
+  totalAmount: number;
+  fulfillmentType: string;
+  createdAt: string;
+  vendors: {
+    status: string;
+    items: { name: string; quantity: number; unitPrice: number }[];
   }[];
 }
 
