@@ -18,6 +18,11 @@ import { DateDivider, sameDay } from './DateDivider';
 import { VendorSheet } from '../store/VendorSheet';
 import { CartBar } from '../cart/CartBar';
 import { CartSheet } from '../cart/CartSheet';
+import { InstallPrompt } from '../pwa/InstallPrompt';
+import { UpdateToast } from '../pwa/UpdateToast';
+
+/** Enough turns that the buyer has seen the app work before being asked to install it. */
+const TURNS_BEFORE_INSTALL_PROMPT = 4;
 
 export function ChatScreen() {
   const {
@@ -189,9 +194,14 @@ export function ChatScreen() {
       )}
 
       <div className="bg-[var(--color-cream-deep)] pt-1">
+        <InstallPrompt
+          visible={messages.length >= TURNS_BEFORE_INSTALL_PROMPT}
+        />
         <CartBar onOpen={() => setCartOpen(true)} />
         <Composer disabled={!connected} onSend={send} />
       </div>
+
+      <UpdateToast />
 
       <BottomNav
         active={cartOpen ? 'cart' : 'chat'}

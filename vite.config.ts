@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // 'prompt', not 'autoUpdate': applying an update reloads the page, and reloading a
+      // buyer mid-payment to swap a service worker is a bad trade. `UpdateToast` offers
+      // it instead, and an ignored update still lands on the next cold start.
       registerType: 'prompt',
       // Dev-mode service worker, so PWA behaviour can be exercised without a build.
       devOptions: { enabled: false },
