@@ -18,6 +18,7 @@ import { DateDivider, sameDay } from './DateDivider';
 import { VendorSheet } from '../store/VendorSheet';
 import { CartBar } from '../cart/CartBar';
 import { CartSheet } from '../cart/CartSheet';
+import { OrdersSheet } from '../orders/OrdersSheet';
 import { InstallPrompt } from '../pwa/InstallPrompt';
 import { UpdateToast } from '../pwa/UpdateToast';
 
@@ -44,6 +45,7 @@ export function ChatScreen() {
     name: string | null;
   } | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
 
   const threadRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -132,14 +134,30 @@ export function ChatScreen() {
     setCartOpen(false);
   };
 
-  const { clear: emptyCart, itemCount } = cart;
-  const clearPaidCart = useCallback(() => {
-    if (itemCount > 0) emptyCart();
-  }, [itemCount, emptyCart]);
+  const { clear: emptyCart } = cart;
+  const clearPaidCart = useCallback(() => emptyCart(), [emptyCart]);
+
+  const seenPaid = useRef<Set<string> | null>(null);
 
   useEffect(() => {
-    if (paidReferences.size > 0) clearPaidCart();
-  }, [paidReferences, clearPaidCart]);
+    // History has not arrived yet; seeding now would treat old orders as new.
+    if (messages.length === 0) return;
+
+    if (seenPaid.current === null) {
+      seenPaid.current = new Set(paidReferences);
+      return;
+    }
+
+    let landed = false;
+    for (const reference of paidReferences) {
+      if (!seenPaid.current.has(reference)) {
+        seenPaid.current.add(reference);
+        landed = true;
+      }
+    }
+
+    if (landed) emptyCart();
+  }, [messages.length, paidReferences, emptyCart]);
 
   return (
     // `relative` so the sheets can cover the conversation without covering the page.
@@ -204,11 +222,11 @@ export function ChatScreen() {
       <UpdateToast />
 
       <BottomNav
-        active={cartOpen ? 'cart' : 'chat'}
+        active={cartOpen ? 'cart' : ordersOpen ? 'orders' : 'chat'}
         cartCount={cart.itemCount}
         onSelect={(tab) => {
-          if (tab === 'chat') setCartOpen(false);
-          if (tab === 'cart') setCartOpen(true);
+          setCartOpen(tab === 'cart');
+          setOrdersOpen(tab === 'orders');
         }}
       />
 
@@ -223,6 +241,8 @@ export function ChatScreen() {
         onClose={() => setCartOpen(false)}
         onCheckout={startCheckout}
       />
+
+      <OrdersSheet open={ordersOpen} onClose={() => setOrdersOpen(false)} />
     </div>
   );
 }

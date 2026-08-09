@@ -50,10 +50,14 @@ export function PaymentLinkCard({
     };
   }, []);
 
-  const markPaid = useCallback(() => {
-    setPhase('paid');
-    onPaid(data.reference);
-  }, [data.reference, onPaid]);
+
+  const markPaid = useCallback(
+    (announce: boolean) => {
+      setPhase('paid');
+      if (announce) onPaid(data.reference);
+    },
+    [data.reference, onPaid],
+  );
 
   /**
    * Settle this order, asking Paystack through our server rather than waiting to be told.
@@ -72,7 +76,7 @@ export function PaymentLinkCard({
 
           if (!alive.current) return;
           if (status?.status === 'PAID') {
-            markPaid();
+            markPaid(true);
             return;
           }
         } catch {
@@ -99,14 +103,6 @@ export function PaymentLinkCard({
     if (settled) setPhase('paid');
   }, [settled]);
 
-  /**
-   * A buyer who paid and then reloaded must not be shown a Pay button again.
-   *
-   * The cheap read comes first; only an order our own records still call unpaid is worth
-   * a round trip to Paystack. That second step is what recovers a payment whose webhook
-   * never arrived — otherwise the buyer is stuck looking at a button for money they have
-   * already sent.
-   */
   useEffect(() => {
     if (!active || settled) return;
 
@@ -117,13 +113,13 @@ export function PaymentLinkCard({
         const status = await api.getOrderStatus(data.reference);
         if (cancelled) return;
         if (status?.status === 'PAID') {
-          markPaid();
+          markPaid(false);
           return;
         }
 
         const verified = await api.verifyPayment(data.reference);
         if (cancelled) return;
-        if (verified?.status === 'PAID') markPaid();
+        if (verified?.status === 'PAID') markPaid(false);
       } catch {
         // Nothing to say — the card simply stays as it is.
       }

@@ -3,6 +3,7 @@ import { config } from './config';
 import { getToken, setToken } from './session';
 import { CHAT_NAMESPACE } from './contract';
 import type {
+  BuyerOrder,
   ChatError,
   ChatMessage,
   SendMessage,
@@ -17,22 +18,11 @@ export interface ChatClientHandlers {
   onConnectionChange?: (connected: boolean) => void;
 }
 
-/**
- * The chat connection.
- *
- * Framework-agnostic — no React, no DOM beyond `localStorage` via `session`. A future
- * native app reuses this file as-is.
- *
- * Two things here are not obvious and both come from the server's behaviour:
- *
- * 1. `session` is emitted once during connection setup and can be missed if listeners
- *    attach late. `session:get` is requested on every connect so the token is never lost.
- * 2. The server does **not** echo the buyer's own message back. The caller renders it
- *    optimistically; only assistant replies arrive over the wire.
- */
 export class ChatClient {
   private socket: Socket | null = null;
   private handlers: ChatClientHandlers = {};
+
+  private ordersHandler?: (orders: BuyerOrder[]) => void;
 
   connect(handlers: ChatClientHandlers = {}): void {
     this.handlers = handlers;
@@ -76,6 +66,10 @@ export class ChatClient {
     this.socket.on('chat:error', (error: ChatError) =>
       this.handlers.onError?.(error),
     );
+
+    this.socket.on('orders:list', (data: { orders: BuyerOrder[] }) =>
+      this.ordersHandler?.(data?.orders ?? []),
+    );
   }
 
   send(text: string, cart?: SendMessage['cart']): string {
@@ -93,6 +87,20 @@ export class ChatClient {
     this.socket?.emit('checkout:start', body);
   }
 
+  /** Attach the orders listener. Survives `connect`, unlike the chat handlers. */
+  setOrdersHandler(handler?: (orders: BuyerOrder[]) => void): void {
+    this.ordersHandler = handler;
+  }
+
+  /** Every order this device has placed. Answered with an `orders:list` event. */
+  requestOrders(): void {
+    this.socket?.emit('orders:list', {});
+  }
+
+  completeOrder(reference: string): void {
+    this.socket?.emit('orders:complete', { reference });
+  }
+
   get connected(): boolean {
     return this.socket?.connected ?? false;
   }
@@ -103,10 +111,6 @@ export class ChatClient {
   }
 }
 
-/**
- * Stable per-send id so a retry over a flaky connection is stored once and answered
- * once. `crypto.randomUUID` is unavailable on insecure origins, hence the fallback.
- */
 function newClientMessageId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();

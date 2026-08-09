@@ -13,6 +13,7 @@ export interface ServerEvents {
   'chat:typing': (data: { isTyping: boolean }) => void;
   'chat:history': (data: { messages: ChatMessage[] }) => void;
   'chat:error': (error: ChatError) => void;
+  'orders:list': (data: { orders: BuyerOrder[] }) => void;
 }
 
 /** Client → server. */
@@ -21,6 +22,37 @@ export interface ClientEvents {
   'chat:message': (body: SendMessage) => void;
   'chat:history': (body: { before?: string; limit?: number }) => void;
   'checkout:start': (body: StartCheckout) => void;
+  'orders:list': (body: Record<string, never>) => void;
+  'orders:complete': (body: { reference: string }) => void;
+}
+
+export type OrderStatus =
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'READY'
+  | 'DISPATCHED'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
+export interface BuyerOrder {
+  reference: string;
+  status: OrderStatus;
+  createdAt: string;
+  paidAt: string | null;
+  fulfillmentType: 'PICKUP' | 'DELIVERY';
+  deliveryAddress: string | null;
+  goodsTotal: number;
+  deliveryFee: number;
+  totalAmount: number;
+  /** True only when confirming receipt is the buyer's next move. Decided server-side. */
+  canComplete: boolean;
+  vendors: {
+    vendorName: string | null;
+    status: OrderStatus;
+    items: { name: string; quantity: number; lineTotal: number }[];
+  }[];
 }
 
 export interface SessionIssued {

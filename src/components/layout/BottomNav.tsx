@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 /**
  * The cream tab bar from the design reference.
  *
- * Chat and Cart are live. Orders arrives in F4 — shown disabled rather than hidden so
- * the chrome does not shift once it works.
+ * Chat, Cart and Orders are live. Settings is still to come — shown disabled rather
+ * than hidden so the chrome does not shift once it works.
  */
 export type Tab = 'chat' | 'cart' | 'orders' | 'settings';
 
@@ -30,7 +30,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode; ready: boolean }[] = [
   {
     id: 'orders',
     label: 'Orders',
-    ready: false,
+    ready: true,
     icon: (
       <path
         d="M5 4h14v16H5V4zm3 4h8v1.6H8V8zm0 4h8v1.6H8V12zm0 4h5v1.6H8V16z"
