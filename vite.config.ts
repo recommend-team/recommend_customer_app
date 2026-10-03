@@ -12,8 +12,12 @@ export default defineConfig({
       // buyer mid-payment to swap a service worker is a bad trade. `UpdateToast` offers
       // it instead, and an ignored update still lands on the next cold start.
       registerType: 'prompt',
+      // Our own worker (`src/sw.ts`), so it can receive push. The generated one cannot.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       // Dev-mode service worker, so PWA behaviour can be exercised without a build.
-      devOptions: { enabled: false },
+      devOptions: { enabled: false, type: 'module' },
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Recommend',
@@ -37,20 +41,10 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
+        // Only the shell is precached. The `/api` navigation rule and the storefront cache
+        // live in `src/sw.ts` now.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // The chat is realtime and the catalogue changes; only the shell is precached.
-        navigateFallbackDenylist: [/^\/api/],
-        runtimeCaching: [
-          {
-            urlPattern: /\/api\/v1\/store/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'catalogue',
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-        ],
       },
     }),
   ],

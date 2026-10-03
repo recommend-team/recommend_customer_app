@@ -2,6 +2,7 @@ import { io, type Socket } from 'socket.io-client';
 import { config } from './config';
 import { getToken, setToken } from './session';
 import { CHAT_NAMESPACE } from './contract';
+import type { PushSubscriptionBody } from './push';
 import type {
   BuyerOrder,
   ChatError,
@@ -101,6 +102,26 @@ export class ChatClient {
     this.socket?.emit('orders:complete', { reference });
   }
 
+  registerPush(body: PushSubscriptionBody): Promise<boolean> {
+    const socket = this.socket;
+    if (!socket?.connected) return Promise.resolve(false);
+
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        socket.off('push:subscribed', onAnswer);
+        resolve(false);
+      }, PUSH_ANSWER_TIMEOUT_MS);
+
+      const onAnswer = (answer: { ok?: boolean }) => {
+        clearTimeout(timer);
+        resolve(answer?.ok === true);
+      };
+
+      socket.once('push:subscribed', onAnswer);
+      socket.emit('push:subscribe', body);
+    });
+  }
+
   get connected(): boolean {
     return this.socket?.connected ?? false;
   }
@@ -117,5 +138,8 @@ function newClientMessageId(): string {
   }
   return `c-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
+
+/** Long enough for a slow connection, short enough not to leave a button spinning. */
+const PUSH_ANSWER_TIMEOUT_MS = 8_000;
 
 export const chatClient = new ChatClient();

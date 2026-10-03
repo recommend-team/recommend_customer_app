@@ -14,6 +14,8 @@ export interface ServerEvents {
   'chat:history': (data: { messages: ChatMessage[] }) => void;
   'chat:error': (error: ChatError) => void;
   'orders:list': (data: { orders: BuyerOrder[] }) => void;
+  /** Answer to `push:subscribe`. */
+  'push:subscribed': (data: { ok: boolean }) => void;
 }
 
 /** Client → server. */
@@ -24,6 +26,13 @@ export interface ClientEvents {
   'checkout:start': (body: StartCheckout) => void;
   'orders:list': (body: Record<string, never>) => void;
   'orders:complete': (body: { reference: string }) => void;
+  /** Register this device for order notifications (N4). */
+  'push:subscribe': (body: {
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+    userAgent: string;
+  }) => void;
+  'push:unsubscribe': (body: { endpoint: string }) => void;
 }
 
 export type OrderStatus =
