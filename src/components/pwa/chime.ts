@@ -99,7 +99,9 @@ function unlock(): void {
  */
 export function armChime(): () => void {
   loadSound();
-  const events = ['pointerdown', 'keydown', 'touchstart'] as const;
+  // Only some events may start audio: on a touch screen it is touchend or click, never
+  // touchstart or a touch pointerdown — listening to those alone left phones locked.
+  const events = ['pointerdown', 'keydown', 'click', 'touchend'] as const;
   const onInteract = () => unlock();
   for (const name of events) {
     window.addEventListener(name, onInteract, { passive: true });
