@@ -25,6 +25,15 @@ export class ChatClient {
 
   private ordersHandler?: (orders: BuyerOrder[]) => void;
 
+  /** Listeners for live messages, which survive `connect` like the orders handler. */
+  private readonly liveListeners = new Set<(message: ChatMessage) => void>();
+
+  /** Hear every message as it arrives live — never history. Returns an unsubscribe. */
+  onLiveMessage(listener: (message: ChatMessage) => void): () => void {
+    this.liveListeners.add(listener);
+    return () => this.liveListeners.delete(listener);
+  }
+
   connect(handlers: ChatClientHandlers = {}): void {
     this.handlers = handlers;
     if (this.socket?.connected) return;
@@ -55,9 +64,10 @@ export class ChatClient {
       if (data?.token) setToken(data.token);
     });
 
-    this.socket.on('chat:message', (message: ChatMessage) =>
-      this.handlers.onMessage?.(message),
-    );
+    this.socket.on('chat:message', (message: ChatMessage) => {
+      this.handlers.onMessage?.(message);
+      for (const listener of this.liveListeners) listener(message);
+    });
     this.socket.on('chat:history', (data: { messages: ChatMessage[] }) =>
       this.handlers.onHistory?.(data?.messages ?? []),
     );

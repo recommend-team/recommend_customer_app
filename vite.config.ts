@@ -44,7 +44,8 @@ export default defineConfig({
       injectManifest: {
         // Only the shell is precached. The `/api` navigation rule and the storefront cache
         // live in `src/sw.ts` now.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // mp3: the notification sound (public/sounds) — cached so it plays offline too.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,mp3}'],
       },
     }),
   ],
