@@ -158,6 +158,30 @@ function OrderCard({
         </span>
       </div>
 
+      {/* Who is bringing it, once it is on its way — a call away if they are late or
+          can't find the address. */}
+      {order.rider && (
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-hairline)] px-3.5 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold tracking-wide text-[var(--color-ink)]/55 uppercase">
+              Your rider
+            </p>
+            <p className="truncate text-[14px] font-semibold text-[var(--color-ink)]">
+              {order.rider.name}
+            </p>
+          </div>
+          {order.rider.phone && (
+            <a
+              href={`tel:${order.rider.phone}`}
+              aria-label={`Call ${order.rider.name}`}
+              className="shrink-0 rounded-full bg-[var(--color-brand)] px-3.5 py-2 text-[13px] font-bold text-white"
+            >
+              Call
+            </a>
+          )}
+        </div>
+      )}
+
       {/* The handover code, only while someone is waiting to check it — the server
           decides when that is, as with the button below. */}
       {order.handoverCode && (

@@ -1,0 +1,14 @@
+# Netlify. The same job as vercel.json, for whichever host deploys this app.
+#
+# A single-page app: every route exists only in the app, not as a file. Without the
+# rewrite, opening or refreshing a deep link returns 404. Real files (scripts, images,
+# sw.js, the manifest) are still served first.
+
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

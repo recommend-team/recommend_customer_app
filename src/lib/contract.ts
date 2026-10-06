@@ -62,6 +62,8 @@ export interface BuyerOrder {
    * while someone is waiting to check it.
    */
   handoverCode: string | null;
+  /** Who is bringing it, so the buyer can call them. Only once it is on its way. */
+  rider: { name: string; phone: string | null } | null;
   vendors: {
     vendorName: string | null;
     /** Where to collect from. Pickup orders only, once paid. */
