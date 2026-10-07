@@ -11,8 +11,8 @@ export function AppHeader({ connected }: { connected: boolean }) {
       // Clears the notch when installed to the home screen.
       style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
     >
-      <div className="grid h-9 w-9 place-items-center rounded-full bg-[var(--color-orange)] text-sm font-bold text-white">
-        R
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white shadow-sm">
+        <img src="/logo-mark.svg" alt="" className="h-5 w-auto" />
       </div>
 
       <div className="min-w-0">
