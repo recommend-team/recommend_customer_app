@@ -73,7 +73,7 @@ export function InstallPrompt({ visible }: { visible: boolean }) {
 }
 
 /** iOS's share mark, inline in the sentence — the words alone are easy to miss. */
-function ShareGlyph() {
+export function ShareGlyph() {
   return (
     <svg
       width="11"

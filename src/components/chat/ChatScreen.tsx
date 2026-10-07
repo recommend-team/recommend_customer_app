@@ -20,6 +20,8 @@ import { CartBar } from '../cart/CartBar';
 import { CartSheet } from '../cart/CartSheet';
 import { OrdersSheet } from '../orders/OrdersSheet';
 import { InstallPrompt } from '../pwa/InstallPrompt';
+import { OrderAlertsPrompt } from '../pwa/OrderAlertsPrompt';
+import { useOrderAlerts } from '../../hooks/useOrderAlerts';
 import { UpdateToast } from '../pwa/UpdateToast';
 
 /** Enough turns that the buyer has seen the app work before being asked to install it. */
@@ -38,6 +40,11 @@ export function ChatScreen() {
     dismissError,
   } = useChat();
   const cart = useCart();
+  useOrderAlerts(connected);
+
+  /** Offer order notifications — set when a payment lands, the moment they matter. */
+  const [offerAlerts, setOfferAlerts] = useState(false);
+  const closeAlertsOffer = useCallback(() => setOfferAlerts(false), []);
 
   /** Which vendor's menu is open over the conversation, if any. */
   const [vendor, setVendor] = useState<{
@@ -156,7 +163,10 @@ export function ChatScreen() {
       }
     }
 
-    if (landed) emptyCart();
+    if (landed) {
+      emptyCart();
+      setOfferAlerts(true);
+    }
   }, [messages.length, paidReferences, emptyCart]);
 
   return (
@@ -212,8 +222,12 @@ export function ChatScreen() {
       )}
 
       <div className="bg-[var(--color-cream-deep)] pt-1">
+        <OrderAlertsPrompt visible={offerAlerts} onDone={closeAlertsOffer} />
+        {/* One ask at a time — the alerts offer covers installing on iPhone itself. */}
         <InstallPrompt
-          visible={messages.length >= TURNS_BEFORE_INSTALL_PROMPT}
+          visible={
+            !offerAlerts && messages.length >= TURNS_BEFORE_INSTALL_PROMPT
+          }
         />
         <CartBar onOpen={() => setCartOpen(true)} />
         <Composer disabled={!connected} onSend={send} />

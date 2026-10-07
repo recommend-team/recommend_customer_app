@@ -2,6 +2,7 @@ import { io, type Socket } from 'socket.io-client';
 import { config } from './config';
 import { getToken, setToken } from './session';
 import { CHAT_NAMESPACE } from './contract';
+import type { PushSubscriptionBody } from './push';
 import type {
   BuyerOrder,
   ChatError,
@@ -23,6 +24,15 @@ export class ChatClient {
   private handlers: ChatClientHandlers = {};
 
   private ordersHandler?: (orders: BuyerOrder[]) => void;
+
+  /** Listeners for live messages, which survive `connect` like the orders handler. */
+  private readonly liveListeners = new Set<(message: ChatMessage) => void>();
+
+  /** Hear every message as it arrives live — never history. Returns an unsubscribe. */
+  onLiveMessage(listener: (message: ChatMessage) => void): () => void {
+    this.liveListeners.add(listener);
+    return () => this.liveListeners.delete(listener);
+  }
 
   connect(handlers: ChatClientHandlers = {}): void {
     this.handlers = handlers;
@@ -54,9 +64,10 @@ export class ChatClient {
       if (data?.token) setToken(data.token);
     });
 
-    this.socket.on('chat:message', (message: ChatMessage) =>
-      this.handlers.onMessage?.(message),
-    );
+    this.socket.on('chat:message', (message: ChatMessage) => {
+      this.handlers.onMessage?.(message);
+      for (const listener of this.liveListeners) listener(message);
+    });
     this.socket.on('chat:history', (data: { messages: ChatMessage[] }) =>
       this.handlers.onHistory?.(data?.messages ?? []),
     );
@@ -101,6 +112,26 @@ export class ChatClient {
     this.socket?.emit('orders:complete', { reference });
   }
 
+  registerPush(body: PushSubscriptionBody): Promise<boolean> {
+    const socket = this.socket;
+    if (!socket?.connected) return Promise.resolve(false);
+
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        socket.off('push:subscribed', onAnswer);
+        resolve(false);
+      }, PUSH_ANSWER_TIMEOUT_MS);
+
+      const onAnswer = (answer: { ok?: boolean }) => {
+        clearTimeout(timer);
+        resolve(answer?.ok === true);
+      };
+
+      socket.once('push:subscribed', onAnswer);
+      socket.emit('push:subscribe', body);
+    });
+  }
+
   get connected(): boolean {
     return this.socket?.connected ?? false;
   }
@@ -117,5 +148,8 @@ function newClientMessageId(): string {
   }
   return `c-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
+
+/** Long enough for a slow connection, short enough not to leave a button spinning. */
+const PUSH_ANSWER_TIMEOUT_MS = 8_000;
 
 export const chatClient = new ChatClient();

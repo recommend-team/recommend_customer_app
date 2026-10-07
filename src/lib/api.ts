@@ -61,4 +61,8 @@ export const api = {
       `/checkout/${encodeURIComponent(reference)}/verify`,
       { method: 'POST' },
     ),
+
+  /** The server's VAPID key, or null when push is switched off there. */
+  pushPublicKey: () =>
+    request<{ publicKey: string | null }>('/notifications/push/public-key'),
 };

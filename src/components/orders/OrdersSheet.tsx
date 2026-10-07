@@ -97,6 +97,33 @@ function OrderCard({
               {vendor.vendorName}
             </p>
           )}
+          {/* Where to collect — sent for pickup orders once paid, never before. */}
+          {vendor.pickupAddress && (
+            <p className="mt-0.5 mb-1 flex items-start gap-1 text-[12px] leading-snug text-[var(--color-ink)]/65">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+                className="mt-[2px] shrink-0"
+              >
+                <path
+                  d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <circle
+                  cx="12"
+                  cy="9.5"
+                  r="2.5"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+              </svg>
+              <span>{vendor.pickupAddress}</span>
+            </p>
+          )}
           <ul>
             {vendor.items.map((item, itemIndex) => (
               <li
@@ -130,6 +157,48 @@ function OrderCard({
           {formatNaira(order.totalAmount)}
         </span>
       </div>
+
+      {/* Who is bringing it, once it is on its way — a call away if they are late or
+          can't find the address. */}
+      {order.rider && (
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-hairline)] px-3.5 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold tracking-wide text-[var(--color-ink)]/55 uppercase">
+              Your rider
+            </p>
+            <p className="truncate text-[14px] font-semibold text-[var(--color-ink)]">
+              {order.rider.name}
+            </p>
+          </div>
+          {order.rider.phone && (
+            <a
+              href={`tel:${order.rider.phone}`}
+              aria-label={`Call ${order.rider.name}`}
+              className="shrink-0 rounded-full bg-[var(--color-brand)] px-3.5 py-2 text-[13px] font-bold text-white"
+            >
+              Call
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* The handover code, only while someone is waiting to check it — the server
+          decides when that is, as with the button below. */}
+      {order.handoverCode && (
+        <div className="border-t border-[var(--color-hairline)] bg-[var(--color-brand)]/8 px-3.5 py-3 text-center">
+          <p className="text-[11px] font-bold tracking-wide text-[var(--color-ink)]/55 uppercase">
+            {order.fulfillmentType === 'PICKUP'
+              ? 'Show this code when you collect'
+              : 'Read this code to the rider'}
+          </p>
+          <p
+            className="mt-1 font-mono text-[26px] font-bold tracking-[0.3em] text-[var(--color-brand)]"
+            aria-label={`Code ${order.handoverCode.split('').join(' ')}`}
+          >
+            {order.handoverCode}
+          </p>
+        </div>
+      )}
 
       {/* Whether this is offered is the server's call, not a guess from the status:
           a pickup order is the buyer's to confirm once ready, a delivery once it has

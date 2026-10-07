@@ -14,6 +14,8 @@ export interface ServerEvents {
   'chat:history': (data: { messages: ChatMessage[] }) => void;
   'chat:error': (error: ChatError) => void;
   'orders:list': (data: { orders: BuyerOrder[] }) => void;
+  /** Answer to `push:subscribe`. */
+  'push:subscribed': (data: { ok: boolean }) => void;
 }
 
 /** Client → server. */
@@ -24,6 +26,13 @@ export interface ClientEvents {
   'checkout:start': (body: StartCheckout) => void;
   'orders:list': (body: Record<string, never>) => void;
   'orders:complete': (body: { reference: string }) => void;
+  /** Register this device for order notifications (N4). */
+  'push:subscribe': (body: {
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+    userAgent: string;
+  }) => void;
+  'push:unsubscribe': (body: { endpoint: string }) => void;
 }
 
 export type OrderStatus =
@@ -48,8 +57,17 @@ export interface BuyerOrder {
   totalAmount: number;
   /** True only when confirming receipt is the buyer's next move. Decided server-side. */
   canComplete: boolean;
+  /**
+   * The code to show — to the rider on a delivery, at the counter on a pickup. Null except
+   * while someone is waiting to check it.
+   */
+  handoverCode: string | null;
+  /** Who is bringing it, so the buyer can call them. Only once it is on its way. */
+  rider: { name: string; phone: string | null } | null;
   vendors: {
     vendorName: string | null;
+    /** Where to collect from. Pickup orders only, once paid. */
+    pickupAddress: string | null;
     status: OrderStatus;
     items: { name: string; quantity: number; lineTotal: number }[];
   }[];
@@ -99,6 +117,11 @@ export interface ChatMessage {
   text: string;
   payload: MessagePayload | null;
   createdAt: string;
+  /**
+   * Set on a live message that is order news (`ORDER_DISPATCHED`, …), so the open app can
+   * chime. Never set on history — an old message does not chime again.
+   */
+  alert?: string | null;
 }
 
 /**

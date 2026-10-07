@@ -1,6 +1,6 @@
 # Recommend — Customer App
 
-The PWA customers use to buy from local vendors by chatting.
+The PWA customers use to buy from vendors by chatting.
 
 Vendors sell whatever they sell — cooked food, gadgets, appliances. Nothing in this app
 assumes a category; the first vertical is restaurants, and no code says so.
