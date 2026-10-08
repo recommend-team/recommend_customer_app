@@ -4,6 +4,7 @@ import { ProductListCard } from './cards/ProductListCard';
 import { VendorListCard } from './cards/VendorListCard';
 import { OrderSummaryCard } from './cards/OrderSummaryCard';
 import { PaymentLinkCard } from './cards/PaymentLinkCard';
+import { EmailCaptureCard } from './cards/EmailCaptureCard';
 
 /**
  * One turn in the thread.
@@ -77,6 +78,14 @@ export function MessageBubble({
           actionable={live}
           onConfirm={() => onChoose('yes')}
           onCancel={() => onChoose('no')}
+        />
+      )}
+
+      {payload?.kind === 'email_capture' && (
+        <EmailCaptureCard
+          data={payload.data}
+          active={live}
+          onSkip={() => onChoose('Skip for now')}
         />
       )}
 

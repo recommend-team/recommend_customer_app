@@ -162,7 +162,8 @@ export type MessagePayload =
   | { kind: 'product_list'; data: ProductListData }
   | { kind: 'choices'; data: ChoicesData }
   | { kind: 'order_summary'; data: OrderSummaryData }
-  | { kind: 'payment_link'; data: PaymentLinkData };
+  | { kind: 'payment_link'; data: PaymentLinkData }
+  | { kind: 'email_capture'; data: EmailCaptureData };
 
 export interface VendorListData {
   vendors: {
@@ -190,6 +191,11 @@ export interface ProductListData {
       imageUrl: string | null;
     }[];
   }[];
+}
+
+/** The checkout's receipt-email card. `email` pre-fills it when the buyer typed one. */
+export interface EmailCaptureData {
+  email?: string;
 }
 
 export interface ChoicesData {
