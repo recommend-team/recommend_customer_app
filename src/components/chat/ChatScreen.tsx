@@ -10,6 +10,7 @@ import { useChat } from '../../hooks/useChat';
 import { useCart } from '../../hooks/useCart';
 import { chatClient } from '../../lib/socket';
 import { AppHeader } from '../layout/AppHeader';
+import { AppMenu } from '../layout/AppMenu';
 import { BottomNav } from '../layout/BottomNav';
 import { MessageBubble } from './MessageBubble';
 import { Composer } from './Composer';
@@ -53,6 +54,7 @@ export function ChatScreen() {
   } | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const threadRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -172,7 +174,7 @@ export function ChatScreen() {
   return (
     // `relative` so the sheets can cover the conversation without covering the page.
     <div className="relative flex h-full flex-col overflow-hidden">
-      <AppHeader connected={connected} />
+      <AppHeader connected={connected} onMenu={() => setMenuOpen(true)} />
 
       <div
         ref={threadRef}
@@ -257,6 +259,7 @@ export function ChatScreen() {
       />
 
       <OrdersSheet open={ordersOpen} onClose={() => setOrdersOpen(false)} />
+      <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </div>
   );
 }

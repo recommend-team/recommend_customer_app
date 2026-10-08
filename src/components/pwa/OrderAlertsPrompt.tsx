@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { chatClient } from '../../lib/socket';
-import { currentPushState, subscribeBrowser } from '../../lib/push';
+import { currentPushState, enableOrderAlerts } from '../../lib/push';
 import { isInstalled, isIosSafari } from '../../lib/install';
 import { ShareGlyph } from './InstallPrompt';
 
@@ -70,10 +70,11 @@ export function OrderAlertsPrompt({
 
   const enable = async () => {
     setStep('asking');
-    const result = await subscribeBrowser();
-    if (result.state === 'granted' && 'subscription' in result) {
-      const ok = await chatClient.registerPush(result.subscription);
-      setStep(ok ? 'on' : 'ask');
+    const result = await enableOrderAlerts((body) =>
+      chatClient.registerPush(body),
+    );
+    if (result === 'on' || result === 'failed') {
+      setStep(result === 'on' ? 'on' : 'ask');
       return;
     }
     // Refused or impossible. Do not ask again — the browser will not either.

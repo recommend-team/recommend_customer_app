@@ -4,7 +4,13 @@
  * The connection state is deliberately understated — a buyer does not need to know about
  * websockets, only that a brief wobble is being handled.
  */
-export function AppHeader({ connected }: { connected: boolean }) {
+export function AppHeader({
+  connected,
+  onMenu,
+}: {
+  connected: boolean;
+  onMenu: () => void;
+}) {
   return (
     <header
       className="flex items-center gap-3 bg-[var(--color-cream)] px-4 pb-3"
@@ -25,7 +31,9 @@ export function AppHeader({ connected }: { connected: boolean }) {
       </div>
 
       <button
-        aria-label="More"
+        onClick={onMenu}
+        aria-label="Menu"
+        aria-haspopup="dialog"
         className="ml-auto grid h-9 w-9 place-items-center rounded-full text-[var(--color-ink)]/50 transition active:bg-black/5"
       >
         <svg
