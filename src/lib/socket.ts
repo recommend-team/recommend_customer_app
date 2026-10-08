@@ -4,12 +4,19 @@ import { getToken, setToken } from './session';
 import { CHAT_NAMESPACE } from './contract';
 import type { PushSubscriptionBody } from './push';
 import type {
+  AccountError,
   BuyerOrder,
   ChatError,
   ChatMessage,
   SendMessage,
   StartCheckout,
 } from './contract';
+
+export interface AccountListener {
+  onAccount?: (email: string | null) => void;
+  onCodeSent?: (data: { email: string; resendAfter: number }) => void;
+  onError?: (error: AccountError) => void;
+}
 
 export interface ChatClientHandlers {
   onMessage?: (message: ChatMessage) => void;
@@ -34,16 +41,47 @@ export class ChatClient {
     return () => this.liveListeners.delete(listener);
   }
 
+  /** Sign-in listeners, which survive `connect` like the live ones. */
+  private readonly accountListeners = new Set<AccountListener>();
+
+  /** Hear sign-in news: who is signed in, a code sent, a step refused. */
+  onAccountEvents(listener: AccountListener): () => void {
+    this.accountListeners.add(listener);
+    return () => this.accountListeners.delete(listener);
+  }
+
+  /** Who this browser is signed in as. Answered through `onAccount`. */
+  requestAccount(): void {
+    this.socket?.emit('account:get', {});
+  }
+
+  requestSignInCode(email: string): void {
+    this.socket?.emit('account:request-code', { email });
+  }
+
+  verifySignInCode(email: string, code: string): void {
+    this.socket?.emit('account:verify', { email, code });
+  }
+
+  /** This browser only — it starts a fresh guest chat. */
+  signOut(): void {
+    this.socket?.emit('account:sign-out', {});
+  }
+
   connect(handlers: ChatClientHandlers = {}): void {
     this.handlers = handlers;
     if (this.socket?.connected) return;
 
-    const token = getToken();
-
     this.socket = io(`${config.socketUrl}${CHAT_NAMESPACE}`, {
       transports: ['websocket'],
+      // Read on every (re)connect, not once: signing in or out swaps the token mid-session,
+      // and a reconnect after a network blip must present the new one — the old one
+      // would put a signed-out browser back on the account's thread.
       // Absent or expired tokens are not refused — the server issues a fresh session.
-      auth: token ? { token } : {},
+      auth: (send) => {
+        const token = getToken();
+        send(token ? { token } : {});
+      },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -54,6 +92,23 @@ export class ChatClient {
       // Ask explicitly rather than relying on the connect-time emit, which races with
       // listener attachment.
       this.socket?.emit('session:get', {});
+      this.socket?.emit('account:get', {});
+    });
+
+    this.socket.on('account', (data: { email: string | null }) => {
+      for (const listener of this.accountListeners) {
+        listener.onAccount?.(data?.email ?? null);
+      }
+    });
+    this.socket.on(
+      'account:code-sent',
+      (data: { email: string; resendAfter: number }) => {
+        for (const listener of this.accountListeners)
+          listener.onCodeSent?.(data);
+      },
+    );
+    this.socket.on('account:error', (error: AccountError) => {
+      for (const listener of this.accountListeners) listener.onError?.(error);
     });
 
     this.socket.on('disconnect', () =>

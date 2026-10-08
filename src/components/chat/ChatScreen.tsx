@@ -23,6 +23,8 @@ import { OrdersSheet } from '../orders/OrdersSheet';
 import { InstallPrompt } from '../pwa/InstallPrompt';
 import { OrderAlertsPrompt } from '../pwa/OrderAlertsPrompt';
 import { useOrderAlerts } from '../../hooks/useOrderAlerts';
+import { useAccount } from '../../hooks/useAccount';
+import { SignInSheet } from '../account/SignInSheet';
 import { UpdateToast } from '../pwa/UpdateToast';
 
 /** Enough turns that the buyer has seen the app work before being asked to install it. */
@@ -55,6 +57,15 @@ export function ChatScreen() {
   const [cartOpen, setCartOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const closeSignIn = useCallback(() => setSignInOpen(false), []);
+  const account = useAccount();
+  // A returning buyer on a new browser sees only the greeting — offer their old chat
+  // back, until they say anything here.
+  const offerSignIn =
+    account.known &&
+    !account.email &&
+    !messages.some((message) => message.author === 'BUYER');
 
   const threadRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -208,6 +219,19 @@ export function ChatScreen() {
           );
         })}
 
+        {offerSignIn && (
+          <p className="px-1 text-center text-[12px] text-[var(--color-ink)]/55">
+            Chatted with us before?{' '}
+            <button
+              onClick={() => setSignInOpen(true)}
+              className="font-bold text-[var(--color-orange)] underline-offset-2 active:underline"
+            >
+              Sign in
+            </button>{' '}
+            to see it here.
+          </p>
+        )}
+
         {typing && <TypingIndicator />}
         <div ref={bottomRef} />
       </div>
@@ -259,7 +283,15 @@ export function ChatScreen() {
       />
 
       <OrdersSheet open={ordersOpen} onClose={() => setOrdersOpen(false)} />
-      <AppMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <AppMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onSignIn={() => {
+          setMenuOpen(false);
+          setSignInOpen(true);
+        }}
+      />
+      <SignInSheet open={signInOpen} onClose={closeSignIn} />
     </div>
   );
 }

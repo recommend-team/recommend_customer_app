@@ -16,6 +16,25 @@ export interface ServerEvents {
   'orders:list': (data: { orders: BuyerOrder[] }) => void;
   /** Answer to `push:subscribe`. */
   'push:subscribed': (data: { ok: boolean }) => void;
+  /** Who this browser is signed in as — after `account:get`, a sign-in or a sign-out. */
+  account: (data: { email: string | null }) => void;
+  'account:code-sent': (data: { email: string; resendAfter: number }) => void;
+  'account:error': (error: AccountError) => void;
+}
+
+/** Why a sign-in step failed. `message` is written for the buyer. */
+export interface AccountError {
+  code:
+    | 'INVALID_EMAIL'
+    | 'COOLDOWN'
+    | 'TOO_MANY'
+    | 'SEND_FAILED'
+    | 'WRONG_CODE'
+    | 'CODE_EXPIRED'
+    | 'TOO_MANY_ATTEMPTS';
+  message: string;
+  retryAfter?: number;
+  attemptsLeft?: number;
 }
 
 /** Client → server. */
@@ -33,6 +52,15 @@ export interface ClientEvents {
     userAgent: string;
   }) => void;
   'push:unsubscribe': (body: { endpoint: string }) => void;
+  'account:get': (body: Record<string, never>) => void;
+  'account:request-code': (body: { email: string }) => void;
+  /**
+   * On success the server may move this browser onto the account's conversation: a new
+   * `session` token, then `account`, then that thread in `chat:history`.
+   */
+  'account:verify': (body: { email: string; code: string }) => void;
+  /** This browser only: back to a fresh guest chat. */
+  'account:sign-out': (body: Record<string, never>) => void;
 }
 
 export type OrderStatus =

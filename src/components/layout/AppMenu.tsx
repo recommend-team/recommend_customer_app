@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { ShareGlyph } from '../pwa/InstallPrompt';
 import { useInstallState } from '../../hooks/useInstallPrompt';
+import { useAccount } from '../../hooks/useAccount';
 import {
   installRoute,
   isInstalled,
@@ -28,13 +29,17 @@ import {
 export function AppMenu({
   open,
   onClose,
+  onSignIn,
 }: {
   open: boolean;
   onClose: () => void;
+  /** Open the sign-in sheet. The menu closes first — one sheet at a time. */
+  onSignIn: () => void;
 }) {
   return (
     <Sheet open={open} title="Menu" onClose={onClose}>
       <div className="flex flex-col gap-2 pb-3">
+        {open && <AccountRow onSignIn={onSignIn} />}
         <InstallRow />
         {/* Remounted on each open, so it re-reads permission the buyer may have changed. */}
         {open && <AlertsRow />}
@@ -63,6 +68,86 @@ export function AppMenu({
         />
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * Signed in or not. Signing out asks once more first: this browser starts a fresh chat,
+ * which looks alarming if it was a slip — though nothing in the account is lost.
+ */
+function AccountRow({ onSignIn }: { onSignIn: () => void }) {
+  const { email, known } = useAccount();
+  const [confirming, setConfirming] = useState(false);
+
+  // Nothing until the server answers, so a signed-in buyer never sees "Sign in" flash.
+  if (!known) return null;
+
+  if (!email) {
+    return (
+      <Row
+        icon={<PersonIcon />}
+        tone="orange"
+        title="Keep your chats on any device"
+        detail="Sign in with your email — no password."
+        action={
+          <ActionButton tone="orange" onClick={onSignIn}>
+            Sign in
+          </ActionButton>
+        }
+      />
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-[var(--color-hairline)] px-3.5 py-3">
+      <div className="flex items-center gap-3">
+        <Badge tone="brand">
+          <PersonIcon />
+        </Badge>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-bold text-[var(--color-ink)]">
+            {email}
+          </p>
+          <p className="text-[12px] text-[var(--color-ink)]/55">
+            Signed in · your chats follow you
+          </p>
+        </div>
+        {!confirming && (
+          <button
+            onClick={() => setConfirming(true)}
+            className="shrink-0 rounded-xl px-2.5 py-2 text-[12px] font-bold text-[var(--color-ink)]/60 transition active:bg-black/5"
+          >
+            Sign out
+          </button>
+        )}
+      </div>
+
+      {confirming && (
+        <div className="mt-3 rounded-xl bg-black/[0.03] px-3 py-2.5">
+          <p className="text-[12px] leading-snug text-[var(--color-ink)]/70">
+            This browser will start a new chat. Your chats and orders stay in
+            your account — sign in again to see them.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => {
+                setConfirming(false);
+                chatClient.signOut();
+              }}
+              className="rounded-xl bg-[var(--color-ink)] px-3 py-2 text-[12px] font-bold text-white transition active:scale-95"
+            >
+              Sign out
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="rounded-xl px-3 py-2 text-[12px] font-bold text-[var(--color-ink)]/60 transition active:bg-black/5"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -346,6 +431,15 @@ const stroke = {
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
 };
+
+function PersonIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="3.6" {...stroke} />
+      <path d="M4.8 19.5a7.2 7.2 0 0114.4 0" {...stroke} />
+    </svg>
+  );
+}
 
 function DownloadIcon() {
   return (
