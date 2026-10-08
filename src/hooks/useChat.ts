@@ -43,6 +43,10 @@ export function useChat(): UseChat {
     chatClient.connect({
       onConnectionChange: (isConnected) => {
         setConnected(isConnected);
+        // "Typing…" is the server's to switch off, and a dropped connection loses that
+        // signal — the dots would stay forever. Clear them on any change: a reply still
+        // being written arrives as a message all the same.
+        setTyping(false);
         if (isConnected) {
           // The server is authoritative on reconnect: pull the thread rather than
           // trusting whatever this tab still holds.
