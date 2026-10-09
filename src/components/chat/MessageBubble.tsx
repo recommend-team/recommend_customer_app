@@ -5,6 +5,7 @@ import { VendorListCard } from './cards/VendorListCard';
 import { OrderSummaryCard } from './cards/OrderSummaryCard';
 import { PaymentLinkCard } from './cards/PaymentLinkCard';
 import { EmailCaptureCard } from './cards/EmailCaptureCard';
+import { AddOnOfferCard } from './cards/AddOnOfferCard';
 
 /**
  * One turn in the thread.
@@ -21,6 +22,7 @@ export function MessageBubble({
   live,
   paidReferences,
   onChoose,
+  onAddOns,
   onOpenVendor,
   onPaid,
 }: {
@@ -28,6 +30,10 @@ export function MessageBubble({
   live: boolean;
   paidReferences: Set<string>;
   onChoose: (label: string) => void;
+  onAddOns: (
+    items: { productId: string; quantity: number }[],
+    said: string,
+  ) => void;
   onOpenVendor: (slug: string, name: string | null) => void;
   onPaid: (reference: string) => void;
 }) {
@@ -87,6 +93,10 @@ export function MessageBubble({
           active={live}
           onSkip={() => onChoose('Skip for now')}
         />
+      )}
+
+      {payload?.kind === 'addon_offer' && (
+        <AddOnOfferCard data={payload.data} active={live} onAnswer={onAddOns} />
       )}
 
       {payload?.kind === 'payment_link' && (

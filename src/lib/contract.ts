@@ -61,6 +61,13 @@ export interface ClientEvents {
   'account:verify': (body: { email: string; code: string }) => void;
   /** This browser only: back to a fresh guest chat. */
   'account:sign-out': (body: Record<string, never>) => void;
+  /**
+   * The answer to the add-on card: the extras picked, or none for "No, thanks". The
+   * server takes only add-ons it offered, at database prices.
+   */
+  'checkout:addons': (body: {
+    items: { productId: string; quantity: number }[];
+  }) => void;
 }
 
 export type OrderStatus =
@@ -163,7 +170,22 @@ export type MessagePayload =
   | { kind: 'choices'; data: ChoicesData }
   | { kind: 'order_summary'; data: OrderSummaryData }
   | { kind: 'payment_link'; data: PaymentLinkData }
-  | { kind: 'email_capture'; data: EmailCaptureData };
+  | { kind: 'email_capture'; data: EmailCaptureData }
+  | { kind: 'addon_offer'; data: AddOnOfferData };
+
+/** "Anything to go with it?" — each cart vendor's extras, grouped by vendor. */
+export interface AddOnOfferData {
+  vendors: {
+    vendorId: string;
+    vendorName: string | null;
+    items: {
+      productId: string;
+      name: string;
+      price: number;
+      imageUrl: string | null;
+    }[];
+  }[];
+}
 
 export interface VendorListData {
   vendors: {
@@ -289,6 +311,11 @@ export interface StorefrontResponse {
     description: string | null;
     price: number;
     imageUrl: string | null;
+    /**
+     * Sold only with a main item from this vendor — drinks, extra protein. Shown apart,
+     * under extras. Absent from a server older than add-ons, which reads as false.
+     */
+    isAddOn?: boolean;
   }[];
 }
 

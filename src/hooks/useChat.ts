@@ -19,6 +19,11 @@ export interface UseChat {
   /** False once the server returns a short page — there is nothing further back. */
   hasMore: boolean;
   send: (text: string) => void;
+  /** Answer the add-on card. `said` is the buyer's side of it, e.g. "Add 2 × Water". */
+  answerAddOns: (
+    items: { productId: string; quantity: number }[],
+    said: string,
+  ) => void;
   loadOlder: () => void;
   dismissError: () => void;
 }
@@ -88,25 +93,39 @@ export function useChat(): UseChat {
     return () => chatClient.disconnect();
   }, []);
 
-  const send = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-
-    // Shown immediately — the server deliberately does not echo the buyer's own message
-    // back, so nothing else will render it.
+  // The buyer's own turn, shown immediately — the server deliberately does not echo it
+  // back, so nothing else will render it.
+  const showOwn = useCallback((text: string) => {
     setMessages((current) => [
       ...current,
       {
         id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         author: 'BUYER',
-        text: trimmed,
+        text,
         payload: null,
         createdAt: new Date().toISOString(),
       },
     ]);
-
-    chatClient.send(trimmed);
   }, []);
+
+  const send = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      showOwn(trimmed);
+      chatClient.send(trimmed);
+    },
+    [showOwn],
+  );
+
+  const answerAddOns = useCallback(
+    (items: { productId: string; quantity: number }[], said: string) => {
+      // Worded as the server records it, so history reads the same after a reload.
+      showOwn(said);
+      chatClient.addAddOns(items);
+    },
+    [showOwn],
+  );
 
   const loadOlder = useCallback(() => {
     if (loadingOlder || !hasMore) return;
@@ -129,6 +148,7 @@ export function useChat(): UseChat {
     loadingOlder,
     hasMore,
     send,
+    answerAddOns,
     loadOlder,
     dismissError,
   };

@@ -153,6 +153,11 @@ export class ChatClient {
     this.socket?.emit('checkout:start', body);
   }
 
+  /** Answer the add-on card — the extras picked, or none for "No, thanks". */
+  addAddOns(items: { productId: string; quantity: number }[]): void {
+    this.socket?.emit('checkout:addons', { items });
+  }
+
   /** Attach the orders listener. Survives `connect`, unlike the chat handlers. */
   setOrdersHandler(handler?: (orders: BuyerOrder[]) => void): void {
     this.ordersHandler = handler;

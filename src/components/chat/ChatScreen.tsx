@@ -39,6 +39,7 @@ export function ChatScreen() {
     loadingOlder,
     hasMore,
     send,
+    answerAddOns,
     loadOlder,
     dismissError,
   } = useChat();
@@ -72,10 +73,23 @@ export function ChatScreen() {
   const restoreFrom = useRef<number | null>(null);
   /** Has the thread been dropped at the newest message yet? */
   const pinned = useRef(false);
+  /** The thread's first message — when it changes without scroll-back, it is a new thread. */
+  const firstMessageId = useRef<string | null>(null);
 
   useLayoutEffect(() => {
     const thread = threadRef.current;
-    if (!thread || pinned.current || messages.length === 0) return;
+    if (!thread || messages.length === 0) return;
+
+    // A different thread altogether — signing in brought the account's, or signing out a
+    // fresh one — opens at its latest message, like the first load. Older messages
+    // loading above (restoreFrom set) keep the buyer where they were instead.
+    const first = messages[0].id;
+    const replaced =
+      firstMessageId.current !== null &&
+      first !== firstMessageId.current &&
+      restoreFrom.current === null;
+    firstMessageId.current = first;
+    if (pinned.current && !replaced) return;
 
     pinned.current = true;
     thread.scrollTop = thread.scrollHeight;
@@ -112,10 +126,21 @@ export function ChatScreen() {
   const { liveMessageIds, paidReferences } = useMemo(() => {
     let summary: string | null = null;
     let payment: string | null = null;
+    // A question asked in a card — the receipt email, the extras — is live until the
+    // buyer answers anything after it. Answered, or overtaken, it is a record.
+    let question: string | null = null;
     const paid = new Set<string>();
 
     for (const message of messages) {
       const payload = message.payload;
+
+      if (message.author === 'BUYER') question = null;
+      if (
+        payload?.kind === 'email_capture' ||
+        payload?.kind === 'addon_offer'
+      ) {
+        question = message.id;
+      }
 
       if (payload?.kind === 'order_summary') {
         const settled = payload.data.status === 'PAID';
@@ -131,7 +156,7 @@ export function ChatScreen() {
 
     return {
       liveMessageIds: new Set(
-        [summary, payment].filter((id): id is string => !!id),
+        [summary, payment, question].filter((id): id is string => !!id),
       ),
       paidReferences: paid,
     };
@@ -212,6 +237,7 @@ export function ChatScreen() {
                 live={liveMessageIds.has(message.id)}
                 paidReferences={paidReferences}
                 onChoose={send}
+                onAddOns={answerAddOns}
                 onOpenVendor={(slug, name) => setVendor({ slug, name })}
                 onPaid={clearPaidCart}
               />
