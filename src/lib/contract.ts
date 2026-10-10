@@ -16,6 +16,25 @@ export interface ServerEvents {
   'orders:list': (data: { orders: BuyerOrder[] }) => void;
   /** Answer to `push:subscribe`. */
   'push:subscribed': (data: { ok: boolean }) => void;
+  /** Who this browser is signed in as — after `account:get`, a sign-in or a sign-out. */
+  account: (data: { email: string | null }) => void;
+  'account:code-sent': (data: { email: string; resendAfter: number }) => void;
+  'account:error': (error: AccountError) => void;
+}
+
+/** Why a sign-in step failed. `message` is written for the buyer. */
+export interface AccountError {
+  code:
+    | 'INVALID_EMAIL'
+    | 'COOLDOWN'
+    | 'TOO_MANY'
+    | 'SEND_FAILED'
+    | 'WRONG_CODE'
+    | 'CODE_EXPIRED'
+    | 'TOO_MANY_ATTEMPTS';
+  message: string;
+  retryAfter?: number;
+  attemptsLeft?: number;
 }
 
 /** Client → server. */
@@ -33,6 +52,22 @@ export interface ClientEvents {
     userAgent: string;
   }) => void;
   'push:unsubscribe': (body: { endpoint: string }) => void;
+  'account:get': (body: Record<string, never>) => void;
+  'account:request-code': (body: { email: string }) => void;
+  /**
+   * On success the server may move this browser onto the account's conversation: a new
+   * `session` token, then `account`, then that thread in `chat:history`.
+   */
+  'account:verify': (body: { email: string; code: string }) => void;
+  /** This browser only: back to a fresh guest chat. */
+  'account:sign-out': (body: Record<string, never>) => void;
+  /**
+   * The answer to the add-on card: the extras picked, or none for "No, thanks". The
+   * server takes only add-ons it offered, at database prices.
+   */
+  'checkout:addons': (body: {
+    items: { productId: string; quantity: number }[];
+  }) => void;
 }
 
 export type OrderStatus =
@@ -134,7 +169,23 @@ export type MessagePayload =
   | { kind: 'product_list'; data: ProductListData }
   | { kind: 'choices'; data: ChoicesData }
   | { kind: 'order_summary'; data: OrderSummaryData }
-  | { kind: 'payment_link'; data: PaymentLinkData };
+  | { kind: 'payment_link'; data: PaymentLinkData }
+  | { kind: 'email_capture'; data: EmailCaptureData }
+  | { kind: 'addon_offer'; data: AddOnOfferData };
+
+/** "Anything to go with it?" — each cart vendor's extras, grouped by vendor. */
+export interface AddOnOfferData {
+  vendors: {
+    vendorId: string;
+    vendorName: string | null;
+    items: {
+      productId: string;
+      name: string;
+      price: number;
+      imageUrl: string | null;
+    }[];
+  }[];
+}
 
 export interface VendorListData {
   vendors: {
@@ -162,6 +213,11 @@ export interface ProductListData {
       imageUrl: string | null;
     }[];
   }[];
+}
+
+/** The checkout's receipt-email card. `email` pre-fills it when the buyer typed one. */
+export interface EmailCaptureData {
+  email?: string;
 }
 
 export interface ChoicesData {
@@ -255,6 +311,11 @@ export interface StorefrontResponse {
     description: string | null;
     price: number;
     imageUrl: string | null;
+    /**
+     * Sold only with a main item from this vendor — drinks, extra protein. Shown apart,
+     * under extras. Absent from a server older than add-ons, which reads as false.
+     */
+    isAddOn?: boolean;
   }[];
 }
 

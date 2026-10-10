@@ -1,11 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import {
-  isInstalled,
+  installSnapshot,
   isIosSafari,
+  promptInstall,
   rememberDismissed,
+  subscribeInstall,
   wasDismissed,
-  type InstallPromptEvent,
+  type InstallSnapshot,
 } from '../lib/install';
+
+/** The browser's install offer and whether the app is installed, kept current. */
+export function useInstallState(): InstallSnapshot {
+  return useSyncExternalStore(
+    subscribeInstall,
+    installSnapshot,
+    installSnapshot,
+  );
+}
 
 export interface UseInstallPrompt {
   /** 'native' can be installed with one tap; 'ios' can only be talked through it. */
@@ -15,54 +26,21 @@ export interface UseInstallPrompt {
 }
 
 /**
- * Whether — and how — this buyer can put Recommend on their home screen.
+ * Whether — and how — the banner should offer to put Recommend on the home screen.
  *
  * `kind` is null when there is nothing useful to offer: already installed, previously
  * declined, or a browser that cannot install at all. Callers render nothing in that case
- * rather than showing a button that would do nothing.
+ * rather than showing a button that would do nothing. The header menu does not use this:
+ * it offers installing always, including after the banner was closed.
  */
 export function useInstallPrompt(): UseInstallPrompt {
-  const [deferred, setDeferred] = useState<InstallPromptEvent | null>(null);
+  const { deferred, installed } = useInstallState();
   const [dismissed, setDismissed] = useState(() => wasDismissed());
-  const [installed, setInstalled] = useState(() => isInstalled());
 
-  useEffect(() => {
-    const onBeforeInstall = (event: Event) => {
-      // Chrome would otherwise show its own mini-infobar at a moment of its choosing.
-      // Holding the event lets us ask once the buyer has seen what the app does.
-      event.preventDefault();
-      setDeferred(event as InstallPromptEvent);
-    };
-
-    // Fires whether they installed from our button or the browser's own menu.
-    const onInstalled = () => {
-      setInstalled(true);
-      setDeferred(null);
-    };
-
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    window.addEventListener('appinstalled', onInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-      window.removeEventListener('appinstalled', onInstalled);
-    };
-  }, []);
-
-  const install = useCallback(() => {
-    if (!deferred) return;
-
-    void deferred.prompt();
-    void deferred.userChoice.then(() => {
-      // Single-use either way, so the banner goes for now. Notably we do *not* remember
-      // a "no" here: backing out of the browser's own dialog is not the same as
-      // declining ours. Someone who tapped Add and then mis-tapped, got interrupted, or
-      // simply hesitated has shown interest, and holding that against them forever
-      // would be the wrong reading. Chrome fires a fresh event on a later visit and the
-      // banner comes back with it.
-      setDeferred(null);
-    });
-  }, [deferred]);
+  // The offer is spent either way, so the banner goes for now. A "no" in the browser's
+  // own dialog is deliberately not remembered: someone who tapped Add and then
+  // hesitated has shown interest, and Chrome makes a fresh offer on a later visit.
+  const install = useCallback(() => void promptInstall(), []);
 
   const dismiss = useCallback(() => {
     rememberDismissed();

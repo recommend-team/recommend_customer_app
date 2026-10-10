@@ -30,7 +30,25 @@ export function VendorSheet({
   });
 
   const vendor = data?.vendor;
-  const products = data?.products ?? [];
+  const products = (data?.products ?? []).filter((product) => !product.isAddOn);
+  const extras = (data?.products ?? []).filter((product) => product.isAddOn);
+  // Extras ride with a meal from this kitchen, so they wait for one to be in the cart.
+  const hasMeal =
+    !!vendor &&
+    cart.lines.some((line) => line.vendorId === vendor.id && !line.isAddOn);
+
+  const addToCart = (product: (typeof products)[number], isAddOn: boolean) =>
+    vendor &&
+    cart.add({
+      productId: product.id,
+      name: product.name,
+      unitPrice: product.price,
+      imageUrl: product.imageUrl,
+      vendorId: vendor.id,
+      vendorName: vendor.businessName,
+      vendorSlug: vendor.slug,
+      isAddOn,
+    });
 
   return (
     <Sheet
@@ -88,23 +106,54 @@ export function VendorSheet({
 
             <QuantityStepper
               quantity={cart.quantityOf(product.id)}
-              onAdd={() =>
-                vendor &&
-                cart.add({
-                  productId: product.id,
-                  name: product.name,
-                  unitPrice: product.price,
-                  imageUrl: product.imageUrl,
-                  vendorId: vendor.id,
-                  vendorName: vendor.businessName,
-                  vendorSlug: vendor.slug,
-                })
-              }
+              onAdd={() => addToCart(product, false)}
               onChange={(quantity) => cart.setQuantity(product.id, quantity)}
             />
           </li>
         ))}
       </ul>
+
+      {extras.length > 0 && (
+        <section className="mt-2 border-t border-[var(--color-hairline)] pt-3">
+          <p className="text-[12px] font-bold tracking-wide text-[var(--color-ink)]/70 uppercase">
+            Extras
+          </p>
+          <p className="text-[12px] text-[var(--color-ink)]/55">
+            {hasMeal
+              ? 'Add to go with your meal.'
+              : 'Add a meal first — extras go with a meal from this kitchen.'}
+          </p>
+
+          <ul className="mt-1 divide-y divide-[var(--color-hairline)]">
+            {extras.map((product) => (
+              <li key={product.id} className="flex items-center gap-3 py-2.5">
+                <ProductThumb
+                  src={product.imageUrl}
+                  name={product.name}
+                  size={44}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium text-[var(--color-ink)]">
+                    {product.name}
+                  </p>
+                  <p className="text-[13px] font-bold text-[var(--color-ink)]/80">
+                    {formatNaira(product.price)}
+                  </p>
+                </div>
+                {hasMeal ? (
+                  <QuantityStepper
+                    quantity={cart.quantityOf(product.id)}
+                    onAdd={() => addToCart(product, true)}
+                    onChange={(quantity) =>
+                      cart.setQuantity(product.id, quantity)
+                    }
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </Sheet>
   );
 }

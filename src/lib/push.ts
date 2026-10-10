@@ -92,6 +92,26 @@ export async function subscribeBrowser(): Promise<
 }
 
 /**
+ * Turn order alerts on: ask, subscribe this browser, and register it with the server.
+ * The one routine behind both the after-payment offer and the header menu.
+ *
+ * `register` is the chat socket's — passed in rather than imported, so this module
+ * stays free of the socket.
+ */
+export async function enableOrderAlerts(
+  register: (body: PushSubscriptionBody) => Promise<boolean>,
+): Promise<'on' | 'failed' | Exclude<PushState, 'granted' | 'available'>> {
+  const result = await subscribeBrowser();
+  if (result.state === 'granted' && 'subscription' in result) {
+    return (await register(result.subscription)) ? 'on' : 'failed';
+  }
+  if (result.state === 'available' || result.state === 'granted') {
+    return 'failed';
+  }
+  return result.state;
+}
+
+/**
  * This browser's existing subscription, if permission was granted earlier. Re-registered
  * on every connect, so a buyer who subscribed once keeps receiving even if the server
  * forgot the device.

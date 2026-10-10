@@ -19,6 +19,11 @@ export interface CartLine {
   vendorId: string;
   vendorName: string | null;
   vendorSlug: string | null;
+  /**
+   * An extra — drinks, extra protein — sold only with a main item from the same vendor.
+   * Absent on lines saved before add-ons existed, which reads as a main item.
+   */
+  isAddOn?: boolean;
 }
 
 export interface CartVendorGroup {
@@ -35,6 +40,11 @@ export interface CartState {
   /** Sum of what the client last saw. The authoritative total comes from checkout. */
   goodsTotal: number;
   vendorCount: number;
+  /**
+   * Extras the last change took out, because their vendor no longer has a main item in
+   * the cart. Named so the cart can say why they went, rather than have them vanish.
+   */
+  removedExtras: string[];
 }
 
 const STORAGE_KEY = 'recommend.cart.v1';
@@ -131,14 +141,30 @@ class CartStore {
     }));
 
   private commit(): void {
-    this.snapshot = derive(this.lines);
+    // An extra rides with a meal from its own kitchen: with no main item left from its
+    // vendor, it goes too. The server refuses one on its own regardless.
+    const vendorsWithMain = new Set(
+      this.lines.filter((line) => !line.isAddOn).map((line) => line.vendorId),
+    );
+    const orphaned = this.lines.filter(
+      (line) => line.isAddOn && !vendorsWithMain.has(line.vendorId),
+    );
+    if (orphaned.length > 0) {
+      this.lines = this.lines.filter((line) => !orphaned.includes(line));
+    }
+
+    this.snapshot = derive(
+      this.lines,
+      orphaned.map((line) => line.name),
+    );
     save(this.lines);
     this.listeners.forEach((listener) => listener());
   }
 }
 
-function derive(lines: CartLine[]): CartState {
+function derive(lines: CartLine[], removedExtras: string[] = []): CartState {
   return {
+    removedExtras,
     lines: [...lines],
     itemCount: lines.reduce((sum, line) => sum + line.quantity, 0),
     goodsTotal: round2(

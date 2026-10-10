@@ -10,6 +10,7 @@ import { useChat } from '../../hooks/useChat';
 import { useCart } from '../../hooks/useCart';
 import { chatClient } from '../../lib/socket';
 import { AppHeader } from '../layout/AppHeader';
+import { AppMenu } from '../layout/AppMenu';
 import { BottomNav } from '../layout/BottomNav';
 import { MessageBubble } from './MessageBubble';
 import { Composer } from './Composer';
@@ -22,6 +23,8 @@ import { OrdersSheet } from '../orders/OrdersSheet';
 import { InstallPrompt } from '../pwa/InstallPrompt';
 import { OrderAlertsPrompt } from '../pwa/OrderAlertsPrompt';
 import { useOrderAlerts } from '../../hooks/useOrderAlerts';
+import { useAccount } from '../../hooks/useAccount';
+import { SignInSheet } from '../account/SignInSheet';
 import { UpdateToast } from '../pwa/UpdateToast';
 
 /** Enough turns that the buyer has seen the app work before being asked to install it. */
@@ -36,6 +39,7 @@ export function ChatScreen() {
     loadingOlder,
     hasMore,
     send,
+    answerAddOns,
     loadOlder,
     dismissError,
   } = useChat();
@@ -53,16 +57,39 @@ export function ChatScreen() {
   } | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const closeSignIn = useCallback(() => setSignInOpen(false), []);
+  const account = useAccount();
+  // A returning buyer on a new browser sees only the greeting — offer their old chat
+  // back, until they say anything here.
+  const offerSignIn =
+    account.known &&
+    !account.email &&
+    !messages.some((message) => message.author === 'BUYER');
 
   const threadRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const restoreFrom = useRef<number | null>(null);
   /** Has the thread been dropped at the newest message yet? */
   const pinned = useRef(false);
+  /** The thread's first message — when it changes without scroll-back, it is a new thread. */
+  const firstMessageId = useRef<string | null>(null);
 
   useLayoutEffect(() => {
     const thread = threadRef.current;
-    if (!thread || pinned.current || messages.length === 0) return;
+    if (!thread || messages.length === 0) return;
+
+    // A different thread altogether — signing in brought the account's, or signing out a
+    // fresh one — opens at its latest message, like the first load. Older messages
+    // loading above (restoreFrom set) keep the buyer where they were instead.
+    const first = messages[0].id;
+    const replaced =
+      firstMessageId.current !== null &&
+      first !== firstMessageId.current &&
+      restoreFrom.current === null;
+    firstMessageId.current = first;
+    if (pinned.current && !replaced) return;
 
     pinned.current = true;
     thread.scrollTop = thread.scrollHeight;
@@ -99,10 +126,21 @@ export function ChatScreen() {
   const { liveMessageIds, paidReferences } = useMemo(() => {
     let summary: string | null = null;
     let payment: string | null = null;
+    // A question asked in a card — the receipt email, the extras — is live until the
+    // buyer answers anything after it. Answered, or overtaken, it is a record.
+    let question: string | null = null;
     const paid = new Set<string>();
 
     for (const message of messages) {
       const payload = message.payload;
+
+      if (message.author === 'BUYER') question = null;
+      if (
+        payload?.kind === 'email_capture' ||
+        payload?.kind === 'addon_offer'
+      ) {
+        question = message.id;
+      }
 
       if (payload?.kind === 'order_summary') {
         const settled = payload.data.status === 'PAID';
@@ -118,7 +156,7 @@ export function ChatScreen() {
 
     return {
       liveMessageIds: new Set(
-        [summary, payment].filter((id): id is string => !!id),
+        [summary, payment, question].filter((id): id is string => !!id),
       ),
       paidReferences: paid,
     };
@@ -172,7 +210,7 @@ export function ChatScreen() {
   return (
     // `relative` so the sheets can cover the conversation without covering the page.
     <div className="relative flex h-full flex-col overflow-hidden">
-      <AppHeader connected={connected} />
+      <AppHeader connected={connected} onMenu={() => setMenuOpen(true)} />
 
       <div
         ref={threadRef}
@@ -199,12 +237,26 @@ export function ChatScreen() {
                 live={liveMessageIds.has(message.id)}
                 paidReferences={paidReferences}
                 onChoose={send}
+                onAddOns={answerAddOns}
                 onOpenVendor={(slug, name) => setVendor({ slug, name })}
                 onPaid={clearPaidCart}
               />
             </div>
           );
         })}
+
+        {offerSignIn && (
+          <p className="px-1 text-center text-[12px] text-[var(--color-ink)]/55">
+            Chatted with us before?{' '}
+            <button
+              onClick={() => setSignInOpen(true)}
+              className="font-bold text-[var(--color-orange)] underline-offset-2 active:underline"
+            >
+              Sign in
+            </button>{' '}
+            to see it here.
+          </p>
+        )}
 
         {typing && <TypingIndicator />}
         <div ref={bottomRef} />
@@ -257,6 +309,15 @@ export function ChatScreen() {
       />
 
       <OrdersSheet open={ordersOpen} onClose={() => setOrdersOpen(false)} />
+      <AppMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onSignIn={() => {
+          setMenuOpen(false);
+          setSignInOpen(true);
+        }}
+      />
+      <SignInSheet open={signInOpen} onClose={closeSignIn} />
     </div>
   );
 }
