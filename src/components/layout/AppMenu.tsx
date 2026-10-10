@@ -64,7 +64,7 @@ export function AppMenu({
           external
           icon={<QuestionIcon />}
           title="Questions & answers"
-          detail="Delivery, payment, pickup and more"
+          detail="Delivery, payment and more"
         />
       </div>
     </Sheet>
