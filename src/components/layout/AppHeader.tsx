@@ -4,13 +4,7 @@
  * The connection state is deliberately understated — a buyer does not need to know about
  * websockets, only that a brief wobble is being handled.
  */
-export function AppHeader({
-  connected,
-  onMenu,
-}: {
-  connected: boolean;
-  onMenu: () => void;
-}) {
+export function AppHeader({ connected }: { connected: boolean }) {
   return (
     <header
       className="flex items-center gap-3 bg-[var(--color-cream)] px-4 pb-3"
@@ -29,25 +23,6 @@ export function AppHeader({
           {connected ? 'Online' : 'Reconnecting…'}
         </p>
       </div>
-
-      <button
-        onClick={onMenu}
-        aria-label="Menu"
-        aria-haspopup="dialog"
-        className="ml-auto grid h-9 w-9 place-items-center rounded-full text-[var(--color-ink)]/50 transition active:bg-black/5"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-hidden
-        >
-          <circle cx="12" cy="5" r="1.8" />
-          <circle cx="12" cy="12" r="1.8" />
-          <circle cx="12" cy="19" r="1.8" />
-        </svg>
-      </button>
     </header>
   );
 }

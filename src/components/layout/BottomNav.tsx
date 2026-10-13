@@ -3,8 +3,7 @@ import type { ReactNode } from 'react';
 /**
  * The cream tab bar from the design reference.
  *
- * Chat, Cart and Orders are live. Settings is still to come — shown disabled rather
- * than hidden so the chrome does not shift once it works.
+ * Cart, Orders and Settings each open a sheet over the chat; Chat closes whichever is up.
  */
 export type Tab = 'chat' | 'cart' | 'orders' | 'settings';
 
@@ -41,7 +40,7 @@ const TABS: { id: Tab; label: string; icon: ReactNode; ready: boolean }[] = [
   {
     id: 'settings',
     label: 'Settings',
-    ready: false,
+    ready: true,
     icon: (
       <path
         d="M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 0 0 12 8.5zm8-.5-1.6-2.8-2.2.6-1.9-1.1L14 2h-4l-.3 2.7-1.9 1.1-2.2-.6L4 8l1.7 1.8v2.4L4 14l1.6 2.8 2.2-.6 1.9 1.1L10 20h4l.3-2.7 1.9-1.1 2.2.6L20 14l-1.7-1.8V9.8L20 8z"
@@ -54,10 +53,16 @@ const TABS: { id: Tab; label: string; icon: ReactNode; ready: boolean }[] = [
 export function BottomNav({
   active,
   cartCount = 0,
+  ordersCount = 0,
+  ordersNews = false,
   onSelect,
 }: {
   active: Tab;
   cartCount?: number;
+  /** Orders still on their way to the buyer. */
+  ordersCount?: number;
+  /** One of them changed since the buyer last looked — the badge pulses until they do. */
+  ordersNews?: boolean;
   onSelect?: (tab: Tab) => void;
 }) {
   return (
@@ -72,7 +77,11 @@ export function BottomNav({
             key={tab.id}
             disabled={!tab.ready}
             onClick={() => tab.ready && onSelect?.(tab.id)}
-            aria-label={tab.label}
+            aria-label={
+              tab.id === 'orders' && ordersCount > 0
+                ? `${tab.label}, ${ordersCount} in progress${ordersNews ? ', updated' : ''}`
+                : tab.label
+            }
             aria-current={isActive ? 'page' : undefined}
             className={[
               'relative grid h-11 w-11 place-items-center rounded-full transition',
@@ -92,6 +101,25 @@ export function BottomNav({
             {tab.id === 'cart' && cartCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--color-brand)] px-1 text-[9px] font-bold text-white">
                 {cartCount}
+              </span>
+            )}
+
+            {/* Orders under way, so the buyer knows to look — and a pulse when one has moved
+                on (paid, ready, on its way) since they last did. */}
+            {tab.id === 'orders' && ordersCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center">
+                {ordersNews && (
+                  <span className="absolute inset-0 animate-ping rounded-full bg-[var(--color-orange)]/70" />
+                )}
+                <span
+                  className={`relative grid h-4 min-w-4 place-items-center rounded-full px-1 text-[9px] font-bold text-white ${
+                    ordersNews
+                      ? 'bg-[var(--color-orange)]'
+                      : 'bg-[var(--color-brand)]'
+                  }`}
+                >
+                  {ordersCount}
+                </span>
               </span>
             )}
           </button>

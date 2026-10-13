@@ -73,7 +73,7 @@ export function wasDismissed(): boolean {
  *
  * Permanent rather than a cooling-off period: someone who declined once and is asked
  * again every week learns to distrust the app. Anyone who changes their mind still has
- * Install app in the header menu, which ignores this.
+ * Install app in the Settings sheet, which ignores this.
  */
 export function rememberDismissed(): void {
   safeStorage()?.setItem(DISMISSED_KEY, '1');
@@ -82,7 +82,7 @@ export function rememberDismissed(): void {
 // ─── The browser's install offer, shared ────────────────────────────────────────────
 //
 // Chrome fires `beforeinstallprompt` once per page load, and its `prompt()` works once.
-// The banner and the header menu both offer to install, so the event lives here, in one
+// The banner and the Settings sheet both offer to install, so the event lives here, in one
 // place, rather than in each component — whichever is tapped uses it, and the other
 // sees that it has gone. Listening starts as this module loads, before any component
 // mounts, so an early event is not missed.
@@ -149,7 +149,7 @@ export async function promptInstall(): Promise<boolean> {
 }
 
 /**
- * How this browser installs, for the header menu — which, unlike the banner, always
+ * How this browser installs, for the Settings sheet — which, unlike the banner, always
  * offers it.
  *
  * - `installed`: running from the home screen already.

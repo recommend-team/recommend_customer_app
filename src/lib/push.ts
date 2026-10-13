@@ -93,7 +93,7 @@ export async function subscribeBrowser(): Promise<
 
 /**
  * Turn order alerts on: ask, subscribe this browser, and register it with the server.
- * The one routine behind both the after-payment offer and the header menu.
+ * The one routine behind both the after-payment offer and the Settings sheet.
  *
  * `register` is the chat socket's — passed in rather than imported, so this module
  * stays free of the socket.

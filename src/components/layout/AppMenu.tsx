@@ -20,7 +20,7 @@ import {
 } from '../../lib/support';
 
 /**
- * The header's ⋮ menu: the things a buyer may have waved away, kept within reach.
+ * The Settings tab: the things a buyer may have waved away, kept within reach.
  *
  * The install banner and the order-alerts offer each ask once, and a closed one is gone
  * for good. This is where someone who closed either by mistake — or changed their mind —
@@ -37,7 +37,7 @@ export function AppMenu({
   onSignIn: () => void;
 }) {
   return (
-    <Sheet open={open} title="Menu" onClose={onClose}>
+    <Sheet open={open} title="Settings" onClose={onClose}>
       <div className="flex flex-col gap-2 pb-3">
         {open && <AccountRow onSignIn={onSignIn} />}
         <InstallRow />
