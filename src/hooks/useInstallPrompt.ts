@@ -30,7 +30,7 @@ export interface UseInstallPrompt {
  *
  * `kind` is null when there is nothing useful to offer: already installed, previously
  * declined, or a browser that cannot install at all. Callers render nothing in that case
- * rather than showing a button that would do nothing. The header menu does not use this:
+ * rather than showing a button that would do nothing. The Settings sheet does not use this:
  * it offers installing always, including after the banner was closed.
  */
 export function useInstallPrompt(): UseInstallPrompt {

@@ -23,6 +23,7 @@ import { OrdersSheet } from '../orders/OrdersSheet';
 import { InstallPrompt } from '../pwa/InstallPrompt';
 import { OrderAlertsPrompt } from '../pwa/OrderAlertsPrompt';
 import { useOrderAlerts } from '../../hooks/useOrderAlerts';
+import { useOrders } from '../../hooks/useOrders';
 import { useAccount } from '../../hooks/useAccount';
 import { SignInSheet } from '../account/SignInSheet';
 import { UpdateToast } from '../pwa/UpdateToast';
@@ -58,6 +59,7 @@ export function ChatScreen() {
   const [cartOpen, setCartOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const orders = useOrders(ordersOpen, connected);
   const [signInOpen, setSignInOpen] = useState(false);
   const closeSignIn = useCallback(() => setSignInOpen(false), []);
   const account = useAccount();
@@ -203,6 +205,8 @@ export function ChatScreen() {
 
     if (landed) {
       emptyCart();
+      // The new order, before the buyer goes looking for it.
+      chatClient.requestOrders();
       setOfferAlerts(true);
     }
   }, [messages.length, paidReferences, emptyCart]);
@@ -210,7 +214,7 @@ export function ChatScreen() {
   return (
     // `relative` so the sheets can cover the conversation without covering the page.
     <div className="relative flex h-full flex-col overflow-hidden">
-      <AppHeader connected={connected} onMenu={() => setMenuOpen(true)} />
+      <AppHeader connected={connected} />
 
       <div
         ref={threadRef}
@@ -288,11 +292,22 @@ export function ChatScreen() {
       <UpdateToast />
 
       <BottomNav
-        active={cartOpen ? 'cart' : ordersOpen ? 'orders' : 'chat'}
+        active={
+          cartOpen
+            ? 'cart'
+            : ordersOpen
+              ? 'orders'
+              : menuOpen
+                ? 'settings'
+                : 'chat'
+        }
         cartCount={cart.itemCount}
+        ordersCount={orders.inProgress}
+        ordersNews={orders.hasNews}
         onSelect={(tab) => {
           setCartOpen(tab === 'cart');
           setOrdersOpen(tab === 'orders');
+          setMenuOpen(tab === 'settings');
         }}
       />
 
@@ -308,7 +323,11 @@ export function ChatScreen() {
         onCheckout={startCheckout}
       />
 
-      <OrdersSheet open={ordersOpen} onClose={() => setOrdersOpen(false)} />
+      <OrdersSheet
+        open={ordersOpen}
+        onClose={() => setOrdersOpen(false)}
+        orders={orders}
+      />
       <AppMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}

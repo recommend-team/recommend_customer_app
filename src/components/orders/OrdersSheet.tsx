@@ -1,4 +1,4 @@
-import { useOrders } from '../../hooks/useOrders';
+import type { UseOrders } from '../../hooks/useOrders';
 import { formatNaira } from '../../lib/cart/cart';
 import { Sheet } from '../ui/Sheet';
 import type { BuyerOrder, OrderStatus } from '../../lib/contract';
@@ -9,12 +9,13 @@ import type { BuyerOrder, OrderStatus } from '../../lib/contract';
 export function OrdersSheet({
   open,
   onClose,
+  orders: { orders, loading, failed, refresh, complete },
 }: {
   open: boolean;
   onClose: () => void;
+  /** Owned by the chat screen, so the Orders tab can count them while this is shut. */
+  orders: UseOrders;
 }) {
-  const { orders, loading, failed, refresh, complete } = useOrders(open);
-
   return (
     <Sheet
       open={open}
