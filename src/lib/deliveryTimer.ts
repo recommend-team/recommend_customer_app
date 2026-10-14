@@ -61,10 +61,13 @@ export function deliveryTimer(order: BuyerOrder, now: number): TimerState {
   };
 }
 
-/** "12:40 PM", the way a buyer reads the time. */
+/** "12:40 PM" — the same format as the chat's own timestamps. */
 export function clockTime(date: Date): string {
-  return date.toLocaleTimeString('en-NG', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return date
+    .toLocaleTimeString('en-NG', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    .toUpperCase();
 }
