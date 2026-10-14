@@ -20,6 +20,7 @@ import { VendorSheet } from '../store/VendorSheet';
 import { CartBar } from '../cart/CartBar';
 import { CartSheet } from '../cart/CartSheet';
 import { OrdersSheet } from '../orders/OrdersSheet';
+import { DeliveryTimer } from '../orders/DeliveryTimer';
 import { InstallPrompt } from '../pwa/InstallPrompt';
 import { OrderAlertsPrompt } from '../pwa/OrderAlertsPrompt';
 import { useOrderAlerts } from '../../hooks/useOrderAlerts';
@@ -215,6 +216,12 @@ export function ChatScreen() {
     // `relative` so the sheets can cover the conversation without covering the page.
     <div className="relative flex h-full flex-col overflow-hidden">
       <AppHeader connected={connected} />
+
+      <DeliveryTimer
+        orders={orders.orders}
+        onComplete={orders.complete}
+        onOpenOrders={() => setOrdersOpen(true)}
+      />
 
       <div
         ref={threadRef}
