@@ -84,6 +84,16 @@ export function useOrders(active: boolean, connected: boolean): UseOrders {
     [],
   );
 
+  // While something is on its way, look again every minute: not every change sends an
+  // alert (an admin marking it delivered does not), and the delivery timer should close
+  // when the order does.
+  const underWay = orders.some((order) => IN_PROGRESS.has(order.status));
+  useEffect(() => {
+    if (!connected || !underWay) return;
+    const timer = setInterval(() => chatClient.requestOrders(), 60_000);
+    return () => clearInterval(timer);
+  }, [connected, underWay]);
+
   const request = useCallback(() => {
     setLoading(true);
     setFailed(false);

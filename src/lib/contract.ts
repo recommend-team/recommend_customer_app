@@ -99,6 +99,13 @@ export interface BuyerOrder {
   handoverCode: string | null;
   /** Who is bringing it, so the buyer can call them. Only once it is on its way. */
   rider: { name: string; phone: string | null } | null;
+  /**
+   * When a paid delivery is expected — payment plus the platform's delivery estimate.
+   * Null for a pickup or an unpaid order. What the delivery timer counts towards.
+   */
+  expectedBy: string | null;
+  /** The estimate behind `expectedBy`, in minutes: the timer's full length. */
+  etaMinutes: number;
   vendors: {
     vendorName: string | null;
     /** Where to collect from. Pickup orders only, once paid. */
