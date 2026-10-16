@@ -1,7 +1,7 @@
 import { useCallback, useState, useSyncExternalStore } from 'react';
 import {
   installSnapshot,
-  isIosSafari,
+  iosBrowser,
   promptInstall,
   rememberDismissed,
   subscribeInstall,
@@ -19,8 +19,12 @@ export function useInstallState(): InstallSnapshot {
 }
 
 export interface UseInstallPrompt {
-  /** 'native' can be installed with one tap; 'ios' can only be talked through it. */
-  kind: 'native' | 'ios' | null;
+  /**
+   * 'native' can be installed with one tap. The rest can only be talked through it:
+   * 'ios' is Safari, 'ios-browser' is Chrome/Edge/Firefox on iOS (their own Share), and
+   * 'ios-in-app' is a social app's browser, which has to hand over to Safari first.
+   */
+  kind: 'native' | 'ios' | 'ios-browser' | 'ios-in-app' | null;
   install: () => void;
   dismiss: () => void;
 }
@@ -49,7 +53,10 @@ export function useInstallPrompt(): UseInstallPrompt {
 
   if (installed || dismissed) return { kind: null, install, dismiss };
   if (deferred) return { kind: 'native', install, dismiss };
-  if (isIosSafari()) return { kind: 'ios', install, dismiss };
+  const ios = iosBrowser();
+  if (ios === 'safari') return { kind: 'ios', install, dismiss };
+  if (ios === 'other') return { kind: 'ios-browser', install, dismiss };
+  if (ios === 'in-app') return { kind: 'ios-in-app', install, dismiss };
 
   return { kind: null, install, dismiss };
 }

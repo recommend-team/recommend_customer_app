@@ -36,8 +36,20 @@ export function InstallPrompt({ visible }: { visible: boolean }) {
         </p>
         <p className="text-[12px] leading-snug text-[var(--color-ink)]/55">
           {kind === 'ios' ? (
+            // Share sits in the bottom bar, or behind ••• in Safari's compact layout.
             <>
-              Tap <ShareGlyph /> below, then <b>Add to Home Screen</b>
+              Tap <ShareGlyph /> (under <b>•••</b> if hidden), then{' '}
+              <b>Add to Home Screen</b>
+            </>
+          ) : kind === 'ios-browser' ? (
+            <>
+              Tap <ShareGlyph /> in the address bar or menu, then{' '}
+              <b>Add to Home Screen</b>
+            </>
+          ) : kind === 'ios-in-app' ? (
+            <>
+              Open this page in <b>Safari</b> first, then tap <ShareGlyph /> and{' '}
+              <b>Add to Home Screen</b>
             </>
           ) : (
             'Order again without hunting for the link'

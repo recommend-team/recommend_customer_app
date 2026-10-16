@@ -10,8 +10,9 @@
  *
  * - **Chrome/Android** fires `beforeinstallprompt`, which can be captured and replayed
  *   later against a tap of our own.
- * - **iOS Safari** fires nothing and offers no API at all. The only route is Share →
- *   Add to Home Screen, so the best we can do is say so, at a moment it makes sense.
+ * - **iOS** fires nothing and offers no API in any browser. The only route is Share →
+ *   Add to Home Screen, so the best we can do is say where Share is, at a moment it
+ *   makes sense.
  *
  * Storage-only and framework-agnostic, like everything else in `lib/`.
  */
@@ -44,16 +45,37 @@ export function isInstalled(): boolean {
 }
 
 /**
- * iOS Safari, where installing is a manual gesture we can only describe.
+ * Which kind of iOS browser this is, or null off iOS.
  *
- * Chrome and Firefox on iOS are also WebKit, but they cannot install at all — telling
- * their users to look for a Share menu that will not work would be worse than silence.
+ * Installing is a manual Share → Add to Home Screen gesture everywhere on iOS, and only
+ * where Share lives differs:
+ *
+ * - `safari` — Share in Safari's toolbar (behind ••• in the compact layout).
+ * - `other` — Chrome, Edge, Firefox. Since iOS 16.4 they offer Add to Home Screen from
+ *   their own Share, and the result is a real web app that can receive push.
+ * - `in-app` — the browser inside Instagram, Facebook, TikTok and the like. No Add to
+ *   Home Screen at all; the page has to be opened in Safari first.
+ *
+ * In-app is checked first: those agents can carry other browsers' tokens too. An in-app
+ * browser that reports itself as plain Safari (SFSafariViewController) cannot be told
+ * apart and is treated as Safari — its toolbar has an Open in Safari button nearby.
  */
-export function isIosSafari(): boolean {
-  return isIos() && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
+export type IosBrowser = 'safari' | 'other' | 'in-app';
+
+const IN_APP_BROWSER =
+  /FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Snapchat|TikTok|musical_ly|BytedanceWebview|Twitter|Line\/|GSA\//;
+const OTHER_IOS_BROWSER = /CriOS|FxiOS|EdgiOS|OPiOS|OPT\//;
+
+export function iosBrowser(): IosBrowser | null {
+  if (!isIos()) return null;
+  const ua = navigator.userAgent;
+  if (IN_APP_BROWSER.test(ua)) return 'in-app';
+  if (OTHER_IOS_BROWSER.test(ua)) return 'other';
+  return 'safari';
 }
 
-function isIos(): boolean {
+/** Any iOS browser — where push waits until the app is on the Home Screen. */
+export function isIos(): boolean {
   return (
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     // iPadOS reports as a Mac; the touch points give it away.
@@ -155,17 +177,26 @@ export async function promptInstall(): Promise<boolean> {
  * - `installed`: running from the home screen already.
  * - `native`: Chrome has made an offer; one tap.
  * - `ios-safari`: Share, then Add to Home Screen.
- * - `ios-other`: Chrome or Firefox on an iPhone, which cannot install — Safari can.
+ * - `ios-other`: Chrome, Edge or Firefox on an iPhone — their own Share, then Add to
+ *   Home Screen.
+ * - `ios-in-app`: a social app's built-in browser, which cannot install — Safari can.
  * - `browser-menu`: no offer to replay (Chrome holding back, Samsung Internet, desktop
  *   Firefox…). The browser's own menu is the way.
  */
 export type InstallRoute =
-  'installed' | 'native' | 'ios-safari' | 'ios-other' | 'browser-menu';
+  | 'installed'
+  | 'native'
+  | 'ios-safari'
+  | 'ios-other'
+  | 'ios-in-app'
+  | 'browser-menu';
 
 export function installRoute(state: InstallSnapshot): InstallRoute {
   if (state.installed) return 'installed';
   if (state.deferred) return 'native';
-  if (isIosSafari()) return 'ios-safari';
-  if (isIos()) return 'ios-other';
+  const ios = iosBrowser();
+  if (ios === 'safari') return 'ios-safari';
+  if (ios === 'other') return 'ios-other';
+  if (ios === 'in-app') return 'ios-in-app';
   return 'browser-menu';
 }

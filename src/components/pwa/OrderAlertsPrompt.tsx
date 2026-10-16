@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { chatClient } from '../../lib/socket';
 import { currentPushState, enableOrderAlerts } from '../../lib/push';
-import { isInstalled, isIosSafari } from '../../lib/install';
+import { iosBrowser, isInstalled, isIos } from '../../lib/install';
 import { ShareGlyph } from './InstallPrompt';
 
 const DISMISSED_KEY = 'recommend.buyer.orderAlertsDismissed';
@@ -40,7 +40,8 @@ export function OrderAlertsPrompt({
       setStep('none');
       return;
     }
-    if (isIosSafari() && !isInstalled()) {
+    // Any iOS browser: none can push to a tab, all but in-app browsers can install.
+    if (isIos() && !isInstalled()) {
       setStep('install-first');
       return;
     }
@@ -112,8 +113,17 @@ export function OrderAlertsPrompt({
         </p>
         {step === 'install-first' && (
           <p className="text-[12px] leading-snug text-[var(--color-ink)]/55">
-            On iPhone, add Recommend to your Home Screen first: tap{' '}
-            <ShareGlyph />, then <b>Add to Home Screen</b>.
+            On iPhone, add Recommend to your Home Screen first:{' '}
+            {iosBrowser() === 'in-app' ? (
+              <>
+                open this page in <b>Safari</b>, then tap <ShareGlyph />
+              </>
+            ) : (
+              <>
+                tap <ShareGlyph />
+              </>
+            )}
+            , then <b>Add to Home Screen</b>.
           </p>
         )}
         {(step === 'ask' || step === 'asking') && (

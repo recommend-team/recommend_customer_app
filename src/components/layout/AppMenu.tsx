@@ -6,7 +6,7 @@ import { useAccount } from '../../hooks/useAccount';
 import {
   installRoute,
   isInstalled,
-  isIosSafari,
+  isIos,
   promptInstall,
 } from '../../lib/install';
 import { currentPushState, enableOrderAlerts } from '../../lib/push';
@@ -168,10 +168,17 @@ function InstallRow() {
     native: 'Keep Recommend on your home screen.',
     'ios-safari': (
       <>
-        Tap <ShareGlyph /> below, then <b>Add to Home Screen</b>.
+        Tap <ShareGlyph /> (under <b>•••</b> if hidden), then{' '}
+        <b>Add to Home Screen</b>.
       </>
     ),
     'ios-other': (
+      <>
+        Tap <ShareGlyph /> in the address bar or menu, then{' '}
+        <b>Add to Home Screen</b>. Not there? Open this page in <b>Safari</b>.
+      </>
+    ),
+    'ios-in-app': (
       <>
         Open this page in <b>Safari</b>, then tap <ShareGlyph /> and{' '}
         <b>Add to Home Screen</b>.
@@ -218,7 +225,7 @@ function AlertsRow() {
 
   useEffect(() => {
     // Web push reaches an iPhone only once the app is on the Home Screen.
-    if (isIosSafari() && !isInstalled()) {
+    if (isIos() && !isInstalled()) {
       setState('install-first');
       return;
     }
