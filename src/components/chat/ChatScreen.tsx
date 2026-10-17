@@ -27,6 +27,7 @@ import { useOrderAlerts } from '../../hooks/useOrderAlerts';
 import { useOrders } from '../../hooks/useOrders';
 import { useAccount } from '../../hooks/useAccount';
 import { SignInSheet } from '../account/SignInSheet';
+import { SIGN_IN_EMAIL } from '../../lib/signInLink';
 import { UpdateToast } from '../pwa/UpdateToast';
 
 /** Enough turns that the buyer has seen the app work before being asked to install it. */
@@ -64,6 +65,19 @@ export function ChatScreen() {
   const [signInOpen, setSignInOpen] = useState(false);
   const closeSignIn = useCallback(() => setSignInOpen(false), []);
   const account = useAccount();
+  // Arrived from a storefront's "Follow your order" link: offer sign-in with the email
+  // they paid with, once the server has said who this browser already is — someone
+  // already signed in with it is simply here.
+  const [signInLink, setSignInLink] = useState<'waiting' | 'open' | 'done'>(
+    SIGN_IN_EMAIL ? 'waiting' : 'done',
+  );
+  if (signInLink === 'waiting' && account.known) {
+    setSignInLink(account.email === SIGN_IN_EMAIL ? 'done' : 'open');
+  }
+  const closeSignInSheet = useCallback(() => {
+    closeSignIn();
+    setSignInLink('done');
+  }, [closeSignIn]);
   // A returning buyer on a new browser sees only the greeting — offer their old chat
   // back, until they say anything here.
   const offerSignIn =
@@ -343,7 +357,11 @@ export function ChatScreen() {
           setSignInOpen(true);
         }}
       />
-      <SignInSheet open={signInOpen} onClose={closeSignIn} />
+      <SignInSheet
+        open={signInOpen || signInLink === 'open'}
+        onClose={closeSignInSheet}
+        initialEmail={signInLink === 'open' ? (SIGN_IN_EMAIL ?? '') : ''}
+      />
     </div>
   );
 }

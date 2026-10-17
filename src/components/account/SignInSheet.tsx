@@ -6,36 +6,43 @@ import { CheckIcon, CodeStep, EmailStep } from './SignInSteps';
 /** How long the "Signed in" confirmation stays before the sheet closes itself. */
 const DONE_MS = 1600;
 
-/**
- * "Keep your chats on any device" — sign in with an emailed code.
- *
- * One path for everyone: a returning buyer and a new one both type an email and the code
- * sent to it. No password to make up or forget. Signing in can move this browser onto
- * the conversation the email already has, which the server sends straight back — the
- * thread behind this sheet updates by itself.
- */
+
 export function SignInSheet({
   open,
   onClose,
+  initialEmail = '',
 }: {
   open: boolean;
   onClose: () => void;
+  initialEmail?: string;
 }) {
   return (
     <Sheet
       open={open}
-      title="Keep your chats on any device"
-      subtitle="Your chats and orders, on any phone or browser."
+      title={
+        initialEmail ? 'Follow your order' : 'Keep your chats on any device'
+      }
+      subtitle={
+        initialEmail
+          ? 'Your order is already in your chat.'
+          : 'Your chats and orders, on any phone or browser.'
+      }
       onClose={onClose}
     >
       {/* Remounted on each open, so it always starts at the email step. */}
-      {open && <SignInFlow onClose={onClose} />}
+      {open && <SignInFlow onClose={onClose} initialEmail={initialEmail} />}
     </Sheet>
   );
 }
 
-function SignInFlow({ onClose }: { onClose: () => void }) {
-  const signIn = useSignIn();
+function SignInFlow({
+  onClose,
+  initialEmail,
+}: {
+  onClose: () => void;
+  initialEmail: string;
+}) {
+  const signIn = useSignIn(initialEmail);
 
   useEffect(() => {
     if (signIn.step !== 'done') return;
