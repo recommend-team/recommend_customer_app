@@ -336,6 +336,10 @@ export function ChatScreen() {
         slug={vendor?.slug ?? null}
         fallbackName={vendor?.name ?? null}
         onClose={() => setVendor(null)}
+        onViewCart={() => {
+          setVendor(null);
+          setCartOpen(true);
+        }}
       />
 
       <CartSheet

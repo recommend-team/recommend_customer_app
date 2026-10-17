@@ -318,12 +318,18 @@ export interface StorefrontResponse {
     description: string | null;
     price: number;
     imageUrl: string | null;
+    /** Absent from an older server, which reads as available. */
+    isAvailable?: boolean;
     /**
      * Sold only with a main item from this vendor — drinks, extra protein. Shown apart,
      * under extras. Absent from a server older than add-ons, which reads as false.
      */
     isAddOn?: boolean;
   }[];
+  /** What delivery costs. Absent from an older server. */
+  deliveryFee?: number;
+  /** How long a delivery is expected to take. Absent from an older server. */
+  deliveryEtaMinutes?: number;
 }
 
 /** Every response is wrapped by the backend's global interceptor. */

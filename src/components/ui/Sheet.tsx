@@ -15,10 +15,13 @@ export function Sheet({
   onClose,
   children,
   footer,
+  leading,
 }: {
   open: boolean;
   title: string;
   subtitle?: string;
+  /** Beside the title — a vendor's logo. With one, the title is set larger. */
+  leading?: ReactNode;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
@@ -61,13 +64,20 @@ export function Sheet({
           {/* Grab handle — signals the panel is dismissible. */}
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10" />
 
-          <div className="flex items-start gap-3">
+          <div
+            className={`flex gap-3 ${leading ? 'items-center' : 'items-start'}`}
+          >
+            {leading}
             <div className="min-w-0">
-              <h2 className="truncate text-[16px] font-bold text-[var(--color-ink)]">
+              <h2
+                className={`truncate font-bold text-[var(--color-ink)] ${
+                  leading ? 'text-[20px] tracking-tight' : 'text-[16px]'
+                }`}
+              >
                 {title}
               </h2>
               {subtitle && (
-                <p className="mt-0.5 truncate text-[12px] text-[var(--color-ink)]/55">
+                <p className="mt-0.5 truncate text-[12px] text-[var(--color-ink)]/60">
                   {subtitle}
                 </p>
               )}
@@ -76,7 +86,9 @@ export function Sheet({
             <button
               onClick={onClose}
               aria-label="Close"
-              className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/5 text-[var(--color-ink)]/60 transition active:scale-95"
+              className={`ml-auto grid shrink-0 place-items-center rounded-full bg-black/5 text-[var(--color-ink)]/60 transition active:scale-95 ${
+                leading ? 'h-11 w-11' : 'h-8 w-8'
+              }`}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
                 <path
