@@ -129,9 +129,25 @@ export interface SendMessage {
 }
 
 export interface StartCheckout {
-  items: { productId: string; quantity: number; expectedUnitPrice?: number }[];
+  items: CheckoutItem[];
   /** What to show as the buyer's turn. Defaults server-side to "I'd like to pay". */
   text?: string;
+}
+
+/** One cart line as checkout takes it. */
+export interface CheckoutItem {
+  productId: string;
+  /** Portions in each pack, for a dish built as a pack; otherwise how many. */
+  quantity: number;
+  expectedUnitPrice?: number;
+  /** A dish built as a pack: how many identical packs, and what goes in each. */
+  packs?: number;
+  extras?: {
+    productId: string;
+    quantity: number;
+    expectedUnitPrice?: number;
+  }[];
+  choices?: { groupId: string; optionIds: string[] }[];
 }
 
 export type ChatErrorCode =
@@ -140,6 +156,8 @@ export type ChatErrorCode =
   | 'RATE_LIMITED'
   | 'REPLY_FAILED'
   | 'CHECKOUT_FAILED'
+  /** A pack past the limits — more than 10 portions, 5 of an extra, 50 packs. */
+  | 'INVALID_CART'
   | 'CONNECTION_FAILED';
 
 export interface ChatError {
@@ -321,15 +339,37 @@ export interface StorefrontResponse {
     /** Absent from an older server, which reads as available. */
     isAvailable?: boolean;
     /**
-     * Sold only with a main item from this vendor — drinks, extra protein. Shown apart,
-     * under extras. Absent from a server older than add-ons, which reads as false.
+     * Sold only with a main item from this vendor — drinks, extra protein. Offered with
+     * the dishes they're ticked on. Absent from a server older than add-ons: false.
      */
     isAddOn?: boolean;
+    /** What the price is for — "portion", "plate". Null or absent: no unit shown. */
+    unit?: string | null;
+    /** The vendor's extras that go with this dish. Absent from an older server. */
+    extraIds?: string[];
+    /** Questions the buyer answers for this dish — "Choose your protein". */
+    choices?: ChoiceGroup[];
   }[];
   /** What delivery costs. Absent from an older server. */
   deliveryFee?: number;
   /** How long a delivery is expected to take. Absent from an older server. */
   deliveryEtaMinutes?: number;
+}
+
+export interface ChoiceGroup {
+  id: string;
+  name: string;
+  required: boolean;
+  /** How many options to pick: at least `minPick`, at most `maxPick`. */
+  minPick: number;
+  maxPick: number;
+  options: {
+    id: string;
+    name: string;
+    /** Added to the dish's price, per portion. */
+    priceDelta: number;
+    isAvailable: boolean;
+  }[];
 }
 
 /** Every response is wrapped by the backend's global interceptor. */
