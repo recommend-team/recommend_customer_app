@@ -34,7 +34,8 @@ export function MessageBubble({
     items: { productId: string; quantity: number }[],
     said: string,
   ) => void;
-  onOpenVendor: (slug: string, name: string | null) => void;
+  /** With a dish id, the dish opens to be built over the vendor's menu. */
+  onOpenVendor: (slug: string, name: string | null, dishId?: string) => void;
   onPaid: (reference: string) => void;
 }) {
   const isBuyer = message.author === 'BUYER';

@@ -1,4 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCart } from '../../../hooks/useCart';
+import { api } from '../../../lib/api';
+import { isBuildable } from '../../store/DishSheet';
 import { formatNaira } from '../../../lib/cart/cart';
 import { QuantityStepper } from '../../ui/QuantityStepper';
 import { ProductThumb } from '../../ui/ProductThumb';
@@ -10,15 +13,19 @@ import type { ProductListData } from '../../../lib/contract';
  * **Every price shown here comes from this payload**, which the server built from the
  * database. The assistant is forbidden from putting a price in its text and a guard strips
  * any it tries, so this card is the only place a number reaches the buyer.
+ *
+ * A dish with extras or choices is built over the vendor's menu rather than added as a
+ * count — checkout won't take a dish without its required choice.
  */
 export function ProductListCard({
   data,
   onOpenVendor,
 }: {
   data: ProductListData;
-  onOpenVendor: (slug: string, name: string | null) => void;
+  onOpenVendor: (slug: string, name: string | null, dishId?: string) => void;
 }) {
   const cart = useCart();
+  const queryClient = useQueryClient();
   const vendors = data?.vendors ?? [];
 
   if (vendors.length === 0) return null;
@@ -64,21 +71,55 @@ export function ProductListCard({
                   </p>
                 </div>
 
-                <QuantityStepper
-                  quantity={cart.quantityOf(item.id)}
-                  onAdd={() =>
-                    cart.add({
-                      productId: item.id,
-                      name: item.name,
-                      unitPrice: item.price,
-                      imageUrl: item.imageUrl,
-                      vendorId: vendor.vendorId,
-                      vendorName: vendor.vendorName,
-                      vendorSlug: vendor.vendorSlug,
-                    })
-                  }
-                  onChange={(quantity) => cart.setQuantity(item.id, quantity)}
-                />
+                {cart.hasPacks(item.id) && vendor.vendorSlug ? (
+                  <button
+                    onClick={() =>
+                      onOpenVendor(
+                        vendor.vendorSlug!,
+                        vendor.vendorName,
+                        item.id,
+                      )
+                    }
+                    className="shrink-0 rounded-full bg-[var(--color-orange)] px-3.5 py-1.5 text-[13px] font-semibold text-white shadow-sm transition active:scale-95"
+                  >
+                    {cart.quantityOf(item.id)} in cart · Add
+                  </button>
+                ) : (
+                  <QuantityStepper
+                    quantity={cart.quantityOf(item.id)}
+                    onAdd={async () => {
+                      const plain = () =>
+                        cart.add({
+                          productId: item.id,
+                          name: item.name,
+                          unitPrice: item.price,
+                          imageUrl: item.imageUrl,
+                          vendorId: vendor.vendorId,
+                          vendorName: vendor.vendorName,
+                          vendorSlug: vendor.vendorSlug,
+                        });
+                      const slug = vendor.vendorSlug;
+                      if (!slug) return plain();
+                      // The same menu the vendor sheet loads, so usually cached.
+                      const menu = await queryClient
+                        .fetchQuery({
+                          queryKey: ['storefront', slug],
+                          queryFn: () => api.getStorefront(slug),
+                          staleTime: 60_000,
+                        })
+                        .catch(() => null);
+                      const product = menu?.products.find(
+                        (p) => p.id === item.id,
+                      );
+                      if (product && isBuildable(product)) {
+                        onOpenVendor(slug, vendor.vendorName, item.id);
+                      } else {
+                        plain();
+                      }
+                    }}
+                    onChange={(quantity) => cart.setQuantity(item.id, quantity)}
+                  />
+                )}
               </li>
             ))}
           </ul>

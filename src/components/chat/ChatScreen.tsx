@@ -53,10 +53,11 @@ export function ChatScreen() {
   const [offerAlerts, setOfferAlerts] = useState(false);
   const closeAlertsOffer = useCallback(() => setOfferAlerts(false), []);
 
-  /** Which vendor's menu is open over the conversation, if any. */
+  /** Which vendor's menu is open over the conversation, if any — and a dish being built. */
   const [vendor, setVendor] = useState<{
     slug: string;
     name: string | null;
+    dishId?: string | null;
   } | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
@@ -263,7 +264,9 @@ export function ChatScreen() {
                 paidReferences={paidReferences}
                 onChoose={send}
                 onAddOns={answerAddOns}
-                onOpenVendor={(slug, name) => setVendor({ slug, name })}
+                onOpenVendor={(slug, name, dishId) =>
+                  setVendor({ slug, name, dishId })
+                }
                 onPaid={clearPaidCart}
               />
             </div>
@@ -335,6 +338,10 @@ export function ChatScreen() {
       <VendorSheet
         slug={vendor?.slug ?? null}
         fallbackName={vendor?.name ?? null}
+        dishId={vendor?.dishId ?? null}
+        onOpenDish={(dishId) =>
+          setVendor((current) => (current ? { ...current, dishId } : current))
+        }
         onClose={() => setVendor(null)}
         onViewCart={() => {
           setVendor(null);
