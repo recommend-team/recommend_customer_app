@@ -2,6 +2,8 @@ import { config } from './config';
 import type {
   ApiEnvelope,
   CheckoutStatus,
+  PickedPlace,
+  PlaceSuggestion,
   StoreSummary,
   StorefrontResponse,
 } from './contract';
@@ -60,6 +62,18 @@ export const api = {
     request<CheckoutStatus>(
       `/checkout/${encodeURIComponent(reference)}/verify`,
       { method: 'POST' },
+    ),
+
+  /** Delivery addresses for what the buyer has typed — one session per search. */
+  suggestPlaces: (q: string, session: string) =>
+    request<PlaceSuggestion[]>(
+      `/places/suggest?${new URLSearchParams({ q, session }).toString()}`,
+    ),
+
+  /** The picked address: its full text, pin, our area, and the token checkout takes. */
+  resolvePlace: (placeId: string, session: string) =>
+    request<PickedPlace>(
+      `/places/resolve?${new URLSearchParams({ placeId, session }).toString()}`,
     ),
 
   /** The server's VAPID key, or null when push is switched off there. */

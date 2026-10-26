@@ -68,6 +68,11 @@ export interface ClientEvents {
   'checkout:addons': (body: {
     items: { productId: string; quantity: number }[];
   }) => void;
+  /**
+   * The address card's pick: the token `GET /places/resolve` gave. The server checks it,
+   * says it back as the buyer's turn, and asks for the house number.
+   */
+  'checkout:address': (body: { token: string }) => void;
 }
 
 export type OrderStatus =
@@ -196,7 +201,32 @@ export type MessagePayload =
   | { kind: 'order_summary'; data: OrderSummaryData }
   | { kind: 'payment_link'; data: PaymentLinkData }
   | { kind: 'email_capture'; data: EmailCaptureData }
-  | { kind: 'addon_offer'; data: AddOnOfferData };
+  | { kind: 'addon_offer'; data: AddOnOfferData }
+  | { kind: 'address_picker'; data: Record<string, unknown> };
+
+/** An address Google suggests for what the buyer has typed (`GET /places/suggest`). */
+export interface PlaceSuggestion {
+  placeId: string;
+  /** "Abraham Adesanya, Ajah, Lekki, Nigeria" */
+  text: string;
+  /** "Abraham Adesanya" */
+  main: string;
+  /** "Ajah, Lekki, Nigeria" */
+  secondary: string;
+}
+
+/** The picked suggestion (`GET /places/resolve`), and the token checkout accepts for it. */
+export interface PickedPlace {
+  place: {
+    placeId: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    areaId: string | null;
+    areaName: string | null;
+  };
+  token: string;
+}
 
 /** "Anything to go with it?" — each cart vendor's extras, grouped by vendor. */
 export interface AddOnOfferData {

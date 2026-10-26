@@ -24,6 +24,8 @@ export interface UseChat {
     items: { productId: string; quantity: number }[],
     said: string,
   ) => void;
+  /** Answer the address card. `said` is the address, as the server records it. */
+  pickAddress: (token: string, said: string) => void;
   loadOlder: () => void;
   dismissError: () => void;
 }
@@ -127,6 +129,14 @@ export function useChat(): UseChat {
     [showOwn],
   );
 
+  const pickAddress = useCallback(
+    (token: string, said: string) => {
+      showOwn(said);
+      chatClient.pickAddress(token);
+    },
+    [showOwn],
+  );
+
   const loadOlder = useCallback(() => {
     if (loadingOlder || !hasMore) return;
 
@@ -149,6 +159,7 @@ export function useChat(): UseChat {
     hasMore,
     send,
     answerAddOns,
+    pickAddress,
     loadOlder,
     dismissError,
   };

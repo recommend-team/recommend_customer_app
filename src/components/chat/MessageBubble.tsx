@@ -6,6 +6,7 @@ import { OrderSummaryCard } from './cards/OrderSummaryCard';
 import { PaymentLinkCard } from './cards/PaymentLinkCard';
 import { EmailCaptureCard } from './cards/EmailCaptureCard';
 import { AddOnOfferCard } from './cards/AddOnOfferCard';
+import { AddressPickerCard } from './cards/AddressPickerCard';
 
 /**
  * One turn in the thread.
@@ -23,6 +24,7 @@ export function MessageBubble({
   paidReferences,
   onChoose,
   onAddOns,
+  onPickAddress,
   onOpenVendor,
   onPaid,
 }: {
@@ -34,6 +36,7 @@ export function MessageBubble({
     items: { productId: string; quantity: number }[],
     said: string,
   ) => void;
+  onPickAddress: (token: string, said: string) => void;
   /** With a dish id, the dish opens to be built over the vendor's menu. */
   onOpenVendor: (slug: string, name: string | null, dishId?: string) => void;
   onPaid: (reference: string) => void;
@@ -98,6 +101,13 @@ export function MessageBubble({
 
       {payload?.kind === 'addon_offer' && (
         <AddOnOfferCard data={payload.data} active={live} onAnswer={onAddOns} />
+      )}
+
+      {payload?.kind === 'address_picker' && (
+        <AddressPickerCard
+          active={live}
+          onPick={(picked) => onPickAddress(picked.token, picked.place.address)}
+        />
       )}
 
       {payload?.kind === 'payment_link' && (

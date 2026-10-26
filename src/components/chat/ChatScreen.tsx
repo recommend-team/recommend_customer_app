@@ -43,6 +43,7 @@ export function ChatScreen() {
     hasMore,
     send,
     answerAddOns,
+    pickAddress,
     loadOlder,
     dismissError,
   } = useChat();
@@ -155,7 +156,8 @@ export function ChatScreen() {
       if (message.author === 'BUYER') question = null;
       if (
         payload?.kind === 'email_capture' ||
-        payload?.kind === 'addon_offer'
+        payload?.kind === 'addon_offer' ||
+        payload?.kind === 'address_picker'
       ) {
         question = message.id;
       }
@@ -264,6 +266,7 @@ export function ChatScreen() {
                 paidReferences={paidReferences}
                 onChoose={send}
                 onAddOns={answerAddOns}
+                onPickAddress={pickAddress}
                 onOpenVendor={(slug, name, dishId) =>
                   setVendor({ slug, name, dishId })
                 }

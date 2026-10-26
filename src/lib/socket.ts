@@ -158,6 +158,11 @@ export class ChatClient {
     this.socket?.emit('checkout:addons', { items });
   }
 
+  /** Answer the address card with the place picked. */
+  pickAddress(token: string): void {
+    this.socket?.emit('checkout:address', { token });
+  }
+
   /** Attach the orders listener. Survives `connect`, unlike the chat handlers. */
   setOrdersHandler(handler?: (orders: BuyerOrder[]) => void): void {
     this.ordersHandler = handler;
